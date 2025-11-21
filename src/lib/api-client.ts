@@ -58,7 +58,8 @@ export type ExpenseLineItem = {
 export type Expense = {
   id: string;
   groupId: string;
-  payerId: string;
+  payerId: string | null;
+  status?: "PENDING" | "PAID" | "REIMBURSED";
   amount: string;
   currency: string;
   date: string;
@@ -235,7 +236,9 @@ const mockData = {
       },
     ],
   } satisfies Group,
+  groups: [] as Group[],
 };
+mockData.groups.push(mockData.group);
 
 export async function fetchUsageMetrics(): Promise<UsageMetric[]> {
   if (isMock) {
@@ -366,6 +369,108 @@ export async function fetchGroup(id: string): Promise<Group> {
 
   const response = await request<{ group: Group }>(`/groups/${id}`, "GET");
   return response.group;
+}
+
+export async function fetchGroups(): Promise<Group[]> {
+  if (isMock) {
+    await delay(220);
+    return mockData.groups;
+  }
+
+  const response = await request<{ groups: Group[] }>("/groups", "GET");
+  return response.groups;
+}
+
+export type AddGroupMemberPayload = {
+  groupId: string;
+  displayName: string;
+  email?: string;
+};
+
+export async function addMemberToGroup(payload: AddGroupMemberPayload): Promise<Group> {
+  if (isMock) {
+    await delay(200);
+    const newMember = {
+      id: crypto.randomUUID(),
+      userId: null,
+      displayName: payload.displayName,
+      email: payload.email,
+    };
+    mockData.group.members.push(newMember);
+    return mockData.group;
+  }
+
+  const response = await request<{ group: Group }>(
+    `/groups/${payload.groupId}/members`,
+    "POST",
+    { displayName: payload.displayName, email: payload.email },
+  );
+  return response.group;
+}
+
+export type CreateExpensePayload = {
+  groupId: string;
+  payerMemberId?: string;
+  status?: Expense["status"];
+  amount: number;
+  currency?: string;
+  date?: string;
+  category?: string;
+  note?: string;
+  splitType: Expense["splitType"];
+  participants?: { memberId: string; shareAmount?: number }[];
+  percentMap?: Record<string, number>;
+  shareMap?: Record<string, number>;
+  receiptUrl?: string;
+  lineItems?: {
+    description?: string;
+    category?: string;
+    quantity?: number;
+    unitAmount?: number;
+    totalAmount: number;
+  }[];
+};
+
+export async function createExpense(payload: CreateExpensePayload): Promise<Expense> {
+  if (isMock) {
+    await delay(320);
+    const now = new Date().toISOString();
+    return {
+      id: crypto.randomUUID(),
+      groupId: payload.groupId,
+      payerId: payload.payerMemberId || "mock-member",
+      amount: payload.amount.toString(),
+      currency: payload.currency || "USD",
+      date: payload.date || now,
+      category: payload.category,
+      note: payload.note,
+      splitType: payload.splitType,
+      status: payload.status,
+      participants:
+        payload.participants?.map((p) => ({
+          id: crypto.randomUUID(),
+          expenseId: "mock-expense",
+          memberId: p.memberId,
+          shareAmount: p.shareAmount?.toString() ?? null,
+        })) ?? [],
+      percentMap: payload.percentMap || null,
+      shareMap: payload.shareMap || null,
+      receiptUrl: payload.receiptUrl,
+      lineItems:
+        payload.lineItems?.map((item) => ({
+          id: crypto.randomUUID(),
+          description: item.description,
+          category: item.category,
+          quantity: (item.quantity ?? 1).toString(),
+          unitAmount: (item.unitAmount ?? item.totalAmount).toString(),
+          totalAmount: item.totalAmount.toString(),
+        })) ?? [],
+      createdAt: now,
+    };
+  }
+
+  const response = await request<{ expense: Expense }>("/expenses", "POST", payload);
+  return response.expense;
 }
 
 function mapToChatMessage(

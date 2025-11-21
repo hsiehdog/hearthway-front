@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreateGroupPayload, Group, createGroup } from "@/lib/api-client";
 
-export function CreateGroupForm() {
+type Props = {
+  onCreated?: (group: Group) => void;
+};
+
+export function CreateGroupForm({ onCreated }: Props) {
   const router = useRouter();
   const [formState, setFormState] = useState<CreateGroupPayload>({
     name: "",
@@ -22,6 +26,7 @@ export function CreateGroupForm() {
   const mutation = useMutation<Group, Error, CreateGroupPayload>({
     mutationFn: (payload) => createGroup(payload),
     onSuccess: (group) => {
+      onCreated?.(group);
       router.push(`/groups/${group.id}`);
     },
   });
