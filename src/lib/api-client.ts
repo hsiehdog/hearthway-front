@@ -32,6 +32,57 @@ export type ChatMessage = {
   isOptimistic?: boolean;
 };
 
+export type GroupMember = {
+  id: string;
+  userId: string | null;
+  displayName: string;
+  email?: string | null;
+};
+
+export type ExpenseParticipant = {
+  id: string;
+  expenseId: string;
+  memberId: string;
+  shareAmount?: string | null;
+};
+
+export type ExpenseLineItem = {
+  id: string;
+  description?: string | null;
+  category?: string | null;
+  quantity: string;
+  unitAmount: string;
+  totalAmount: string;
+};
+
+export type Expense = {
+  id: string;
+  groupId: string;
+  payerId: string;
+  amount: string;
+  currency: string;
+  date: string;
+  category?: string | null;
+  note?: string | null;
+  splitType: "EVEN" | "PERCENT" | "SHARES";
+  participants: ExpenseParticipant[];
+  percentMap?: Record<string, number> | null;
+  shareMap?: Record<string, number> | null;
+  receiptUrl?: string | null;
+  lineItems: ExpenseLineItem[];
+  createdAt: string;
+};
+
+export type Group = {
+  id: string;
+  name: string;
+  type: "PROJECT" | "TRIP";
+  members: GroupMember[];
+  expenses: Expense[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 type AIChatResponse = {
   id?: string;
   role?: "user" | "assistant" | "system";
@@ -142,6 +193,48 @@ const mockData = {
       createdAt: new Date().toISOString(),
     },
   ] satisfies ChatMessage[],
+  group: {
+    id: "demo-group",
+    name: "Barcelona weekend",
+    type: "TRIP",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    members: [
+      { id: "m1", userId: "u1", displayName: "You", email: "you@example.com" },
+      { id: "m2", userId: null, displayName: "Maya", email: "maya@example.com" },
+    ],
+    expenses: [
+      {
+        id: "e1",
+        groupId: "demo-group",
+        payerId: "m1",
+        amount: "120.50",
+        currency: "USD",
+        date: new Date().toISOString(),
+        category: "Dinner",
+        note: "Tapas night",
+        splitType: "EVEN",
+        participants: [
+          { id: "ep1", expenseId: "e1", memberId: "m1", shareAmount: "60.25" },
+          { id: "ep2", expenseId: "e1", memberId: "m2", shareAmount: "60.25" },
+        ],
+        percentMap: null,
+        shareMap: null,
+        receiptUrl: null,
+        lineItems: [
+          {
+            id: "li1",
+            description: "Shared plates",
+            category: "Food",
+            quantity: "1",
+            unitAmount: "120.50",
+            totalAmount: "120.50",
+          },
+        ],
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  } satisfies Group,
 };
 
 export async function fetchUsageMetrics(): Promise<UsageMetric[]> {
@@ -229,6 +322,50 @@ export async function changeUserPassword(
   }
 
   await request("/users/me/change-password", "POST", payload);
+}
+
+export type CreateGroupPayload = {
+  name: string;
+  type?: Group["type"];
+  memberDisplayName?: string;
+  memberEmail?: string;
+};
+
+export async function createGroup(payload: CreateGroupPayload): Promise<Group> {
+  if (isMock) {
+    await delay(320);
+    return {
+      ...mockData.group,
+      id: crypto.randomUUID(),
+      name: payload.name,
+      type: payload.type ?? "PROJECT",
+      members: [
+        {
+          id: crypto.randomUUID(),
+          userId: "mock-user",
+          displayName: payload.memberDisplayName || "You",
+          email: payload.memberEmail || "you@example.com",
+        },
+      ],
+      expenses: [],
+    };
+  }
+
+  const response = await request<{ group: Group }>("/groups", "POST", payload);
+  return response.group;
+}
+
+export async function fetchGroup(id: string): Promise<Group> {
+  if (isMock) {
+    await delay(250);
+    return {
+      ...mockData.group,
+      id,
+    };
+  }
+
+  const response = await request<{ group: Group }>(`/groups/${id}`, "GET");
+  return response.group;
 }
 
 function mapToChatMessage(
