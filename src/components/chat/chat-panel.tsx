@@ -118,10 +118,9 @@ export function ChatPanel() {
   return (
     <Card id="chat" className="border-muted">
       <CardHeader>
-        <CardTitle>Chat with your AI</CardTitle>
+        <CardTitle>Chat with your Hearthway guide</CardTitle>
         <CardDescription>
-          Issue runbooks, query metrics, or ask for deployment context.
-          Requests automatically reuse your Better Auth session cookie.
+          Ask for balances, who owes what, or how to split a new receipt. Requests automatically reuse your Better Auth session cookie.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -143,7 +142,7 @@ export function ChatPanel() {
 
         <form className="flex flex-col gap-3 md:flex-row" onSubmit={handleSubmit}>
           <Textarea
-            placeholder="Ask for an incident summary or rollout plan…"
+            placeholder="Ask for a trip balance, suggest a fair split, or draft settlement steps…"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             className="min-h-[96px] flex-1 resize-none"

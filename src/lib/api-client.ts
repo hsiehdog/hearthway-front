@@ -11,7 +11,7 @@ export type UsageMetric = {
 export type ProjectSummary = {
   id: string;
   name: string;
-  status: "online" | "degraded" | "paused";
+  status: "active" | "settling" | "settled";
   updatedAt: string;
   owner: string;
 };
@@ -82,53 +82,53 @@ async function request<T>(
 
 const mockData = {
   usage: [
-    { id: "tokens", label: "Tokens processed", value: "1.2M", delta: 12 },
-    { id: "latency", label: "Avg. latency", value: "820ms", delta: -4 },
-    { id: "users", label: "Active users", value: "864", delta: 8 },
-    { id: "costs", label: "Spend this week", value: "$1,870", delta: -2 },
+    { id: "expenses", label: "Expenses logged", value: "128", delta: 14 },
+    { id: "receipts", label: "Receipts saved", value: "76", delta: 9 },
+    { id: "people", label: "People squared up", value: "42", delta: 6 },
+    { id: "balance", label: "Open balance", value: "$1,870", delta: -2, helper: "Lower is better" },
   ] satisfies UsageMetric[],
   projects: [
     {
       id: "copilot",
-      name: "Developer Copilot",
-      status: "online",
-      updatedAt: "2 minutes ago",
-      owner: "Platform",
+      name: "Neighborhood repairs",
+      status: "active",
+      updatedAt: "5 minutes ago",
+      owner: "Cedar Street",
     },
     {
       id: "agenthub",
-      name: "Agent Hub",
-      status: "degraded",
-      updatedAt: "8 minutes ago",
-      owner: "Automation",
+      name: "Barcelona long weekend",
+      status: "settling",
+      updatedAt: "24 minutes ago",
+      owner: "Trip",
     },
     {
       id: "insights",
-      name: "Insights Assistant",
-      status: "paused",
-      updatedAt: "45 minutes ago",
-      owner: "Revenue",
+      name: "Book club brunches",
+      status: "settled",
+      updatedAt: "2 days ago",
+      owner: "Friends",
     },
   ] satisfies ProjectSummary[],
   activity: [
     {
       id: "deploy-1",
-      title: "New agent deployed",
-      description: "v0.12.4 rolled out to production",
+      title: "New expense added",
+      description: "Roof patch materials · $240 split evenly",
       timestamp: "Today · 10:42 AM",
       category: "deployment",
     },
     {
       id: "alert-1",
-      title: "Latency spike detected",
-      description: "LLM provider response time exceeded SLO",
+      title: "Receipt uploaded",
+      description: "Barcelona dinner receipt attached by Maya",
       timestamp: "Today · 9:17 AM",
       category: "alert",
     },
     {
       id: "usage-1",
-      title: "Usage milestone",
-      description: "Surpassed 1M prompts this week",
+      title: "Suggested settlement ready",
+      description: "Barcelona trip balances updated with payback plan",
       timestamp: "Yesterday · 6:03 PM",
       category: "usage",
     },
@@ -138,7 +138,7 @@ const mockData = {
       id: "intro-1",
       role: "assistant",
       content:
-        "Hi! Ask me anything about your AI workloads—deployments, tokens, incidents, or experimentation.",
+        "Hi! Ask me about your groups or trips—balances, who owes what, or how to split a new expense.",
       createdAt: new Date().toISOString(),
     },
   ] satisfies ChatMessage[],
@@ -193,7 +193,7 @@ export async function sendChatMessage(message: string): Promise<ChatMessage> {
       id: crypto.randomUUID(),
       role: "assistant",
       content:
-        "Here’s a mocked response describing what your managed LLM endpoint would have answered.",
+        "Here’s a mocked response showing how Hearthway would summarize balances and suggest who to pay.",
       createdAt: new Date().toISOString(),
     };
   }

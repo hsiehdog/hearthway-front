@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Control Center",
+  title: "Hearthway",
   description:
-    "Starter kit for AI-driven applications with Next.js, Better Auth, shadcn/ui, and a chat-ready dashboard.",
+    "Shared expenses made simple—track repairs or trips, split costs fairly, and settle up with clarity.",
 };
 
 export default function RootLayout({

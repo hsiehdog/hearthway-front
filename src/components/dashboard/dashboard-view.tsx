@@ -24,17 +24,17 @@ export function DashboardView() {
               Hey {data?.user?.name || "there"},
             </CardTitle>
             <CardDescription>
-              Monitor usage, deployments, and collaborate with the AI operator in one view.
+              Track shared expenses, trips, and balances in one place.
             </CardDescription>
           </div>
           <div className="hidden rounded-full border px-4 py-2 text-sm font-medium md:flex md:items-center md:gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            AI ready
+            Settlement ready
           </div>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your Better Auth session cookie is reused when calling your backend. Configure{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">NEXT_PUBLIC_API_BASE_URL</code> if you want to hit a remote API.
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">NEXT_PUBLIC_API_BASE_URL</code> to point at Hearthway&apos;s expense APIs for live balances and settlements.
         </CardContent>
       </Card>
 

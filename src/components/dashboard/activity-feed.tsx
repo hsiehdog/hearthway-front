@@ -19,7 +19,7 @@ export function ActivityFeed({ activity, isLoading }: ActivityFeedProps) {
     <Card className="border-muted">
       <CardHeader>
         <CardTitle>Activity</CardTitle>
-        <CardDescription>Deployments, alerts, and usage milestones</CardDescription>
+        <CardDescription>Recent expenses, receipts, and settlement updates</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading &&

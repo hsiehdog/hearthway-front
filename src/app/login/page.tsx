@@ -25,14 +25,14 @@ export default function LoginPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-10 text-center">
         <div className="space-y-4">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Better Auth + AI
+            Settle up together
           </p>
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-            Sign in to orchestrate intelligent software
+            Sign in to track shared costs with Hearthway
           </h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
             Sessions are backed by Better Auth&apos;s secure cookies, so your browser forwards credentials automatically.
-            Use the dashboard to inspect usage and collaborate with your AI operator.
+            Use the dashboard to log expenses, view balances, and settle confidently.
           </p>
         </div>
 

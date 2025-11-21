@@ -48,11 +48,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   const formTitle =
     mode === "login"
       ? "Welcome back"
-      : "Create an account for the AI Control Center";
+      : "Create an account for Hearthway";
   const formDescription =
     mode === "login"
-      ? "Sign in to review usage, manage projects, and chat with your AI copilots."
-      : "Kick-start your workspace in seconds. Better Auth keeps your credentials safe by default.";
+      ? "Sign in to review balances, manage projects or trips, and keep everyone synced."
+      : "Kick-start your space for shared expenses. Better Auth keeps your credentials safe by default.";
 
   const primaryAction = mode === "login" ? "Sign in" : "Create account";
   const secondaryCta =

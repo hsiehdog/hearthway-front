@@ -16,17 +16,17 @@ type ProjectsCardProps = {
 };
 
 const statusStyles: Record<ProjectSummary["status"], string> = {
-  online: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10",
-  degraded: "bg-amber-100 text-amber-700 dark:bg-amber-500/10",
-  paused: "bg-slate-200 text-slate-700 dark:bg-slate-500/20",
+  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10",
+  settling: "bg-amber-100 text-amber-700 dark:bg-amber-500/10",
+  settled: "bg-slate-200 text-slate-700 dark:bg-slate-500/20",
 };
 
 export function ProjectsCard({ projects, isLoading }: ProjectsCardProps) {
   return (
     <Card className="border-muted">
       <CardHeader>
-        <CardTitle>AI services</CardTitle>
-        <CardDescription>Track deployments across teams</CardDescription>
+        <CardTitle>Groups & trips</CardTitle>
+        <CardDescription>Follow every shared tab and who is involved</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading &&

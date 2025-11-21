@@ -10,19 +10,19 @@ import { authClient } from "@/lib/auth/client";
 
 const features = [
   {
-    title: "Authentication ready",
+    title: "Transparent receipts",
     description:
-      "Better Auth issues secure session cookies out of the box, so your browser forwards credentials automatically.",
+      "Snap or upload receipts to keep every shared expense visible, whether it’s a home repair or a dinner abroad.",
   },
   {
-    title: "Operator dashboard",
+    title: "Flexible splits",
     description:
-      "Visualize usage, deployments, and events across AI services. Tailwind and shadcn components keep things consistent.",
+      "Divide costs evenly, by percentages, or by shares so Project Mode and Trip Mode both stay fair.",
   },
   {
-    title: "AI copilots",
+    title: "Confident settlement",
     description:
-      "Drop-in chat surface that can call your LLM API using the authenticated user’s identity.",
+      "See live balances and suggested paybacks so everyone knows who owes what before settling up.",
   },
 ];
 
@@ -45,15 +45,14 @@ export default function Home() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-20">
         <section className="space-y-8 text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Infrastructure for AI-driven software
+            Shared expenses without the drama
           </p>
           <div className="space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              Launch dashboards, chat surfaces, and auth in minutes
+              Hearthway keeps groups square, at home or on the road
             </h1>
             <p className="mx-auto max-w-3xl text-lg text-muted-foreground">
-              A Next.js + TypeScript starter that blends Better Auth, Tailwind, and shadcn/ui. Use it to bootstrap internal tooling,
-              AI copilots, or full SaaS products without reinventing your foundation.
+              Track shared repairs, clubs, and trips in one place. Log expenses, attach receipts, choose the right split (even, percentage, or shares), and let Hearthway keep running balances for everyone.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -98,8 +97,8 @@ export default function Home() {
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-foreground">AI orchestration</p>
-                <p>Dashboard & chat components call your API through a typed helper that automatically forwards the signed session cookie.</p>
+                <p className="font-semibold text-foreground">Expense engine</p>
+                <p>Dashboard, trip panels, and chat call your API through a typed helper that automatically forwards the signed Better Auth session cookie.</p>
               </div>
             </CardContent>
           </Card>

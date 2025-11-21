@@ -28,10 +28,10 @@ export default function SignupPage() {
             Fast onboarding
           </p>
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-            Build AI-driven software faster than ever
+            Start a Hearthway space for your group
           </h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Create your workspace, wire Better Auth into the backend, and start testing chat-based workflows instantly.
+            Create your workspace, invite neighbors or travelers, and wire Better Auth into the backend to keep sessions secure.
           </p>
         </div>
 
