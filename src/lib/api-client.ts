@@ -473,6 +473,34 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
   return response.expense;
 }
 
+export type UpdateExpensePayload = CreateExpensePayload & { id: string };
+
+export async function updateExpense(payload: UpdateExpensePayload): Promise<Expense> {
+  if (isMock) {
+    await delay(200);
+    return {
+      ...(mockData.group.expenses[0] ?? (await createExpense(payload))),
+      ...payload,
+      id: payload.id,
+      payerId: payload.payerMemberId ?? null,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  const { id, ...body } = payload;
+  const response = await request<{ expense: Expense }>(`/expenses/${id}`, "PUT", body);
+  return response.expense;
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  if (isMock) {
+    await delay(100);
+    return;
+  }
+
+  await request(`/expenses/${id}`, "DELETE");
+}
+
 function mapToChatMessage(
   payload: AIChatResponse,
   fallbackRole: ChatMessage["role"] = "assistant",

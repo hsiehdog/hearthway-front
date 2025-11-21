@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import { AddMemberForm } from "@/components/groups/add-member-form";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Expense, Group, fetchGroup } from "@/lib/api-client";
+import { Expense, Group, deleteExpense, fetchGroup } from "@/lib/api-client";
 
 function formatAmount(expense: Expense) {
   const value = Number(expense.amount);
@@ -159,17 +159,6 @@ function GroupExpenses({
                   </p>
                 )}
               </div>
-              {expense.lineItems.length ? (
-                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Line items</p>
-                  {expense.lineItems.map((item) => (
-                    <div key={item.id} className="flex justify-between">
-                      <span>{item.description || "Item"}</span>
-                      <span>{item.totalAmount}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
             </button>
           ))
         )}
@@ -185,6 +174,7 @@ export default function GroupDetailPage() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isPending, error } = useQuery<Group>({
     queryKey: ["group", groupId],
@@ -302,6 +292,11 @@ export default function GroupDetailPage() {
                 onSuccess={() => setSelectedExpense(null)}
                 asCard={false}
                 initialExpense={selectedExpense}
+                onDelete={async (id) => {
+                  await deleteExpense(id);
+                  await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                  setSelectedExpense(null);
+                }}
               />
             </CardContent>
           </Card>

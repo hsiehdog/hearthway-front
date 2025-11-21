@@ -7,7 +7,8 @@ import { CalendarDays, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Group, createExpense, Expense } from "@/lib/api-client";
+import { Group, createExpense, Expense, updateExpense } from "@/lib/api-client";
+import { useEffect } from "react";
 
 type Props = {
   groupId: string;
@@ -15,9 +16,18 @@ type Props = {
   onSuccess?: () => void;
   asCard?: boolean;
   initialExpense?: Expense;
+  onDelete?: (id: string) => Promise<void> | void;
 };
 
 type ParticipantState = Record<string, { checked: boolean; shareAmount?: string }>;
+type LineItemState = {
+  id: string;
+  description: string;
+  category: string;
+  quantity: string;
+  unitAmount: string;
+  totalAmount: string;
+};
 
 export function CreateExpenseForm({
   groupId,
@@ -25,6 +35,7 @@ export function CreateExpenseForm({
   onSuccess,
   asCard = true,
   initialExpense,
+  onDelete,
 }: Props) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState(initialExpense?.amount ?? "");
@@ -57,10 +68,22 @@ export function CreateExpenseForm({
       return acc;
     }, {});
   });
+  const [lineItems, setLineItems] = useState<LineItemState[]>(
+    initialExpense
+      ? initialExpense.lineItems.map((item) => ({
+          id: item.id,
+          description: item.description ?? "",
+          category: item.category ?? "",
+          quantity: item.quantity ?? "1",
+          unitAmount: item.unitAmount ?? "",
+          totalAmount: item.totalAmount ?? "",
+        }))
+      : [],
+  );
 
   const mutation = useMutation({
-    mutationFn: () =>
-      createExpense({
+    mutationFn: () => {
+      const payloadBase = {
         groupId,
         payerMemberId: payerId === "pending" ? undefined : payerId,
         status: payerId === "pending" ? "PENDING" : "PAID",
@@ -76,12 +99,32 @@ export function CreateExpenseForm({
             memberId,
             shareAmount: value.shareAmount ? Number(value.shareAmount) : undefined,
           })),
-      }),
+        lineItems: lineItems.length
+          ? lineItems.map((item) => ({
+              description: item.description || undefined,
+              category: item.category || undefined,
+              quantity: item.quantity ? Number(item.quantity) : undefined,
+              unitAmount: item.unitAmount ? Number(item.unitAmount) : undefined,
+              totalAmount: Number(item.totalAmount || item.unitAmount || 0),
+            }))
+          : undefined,
+      };
+
+      if (initialExpense) {
+        return updateExpense({
+          ...payloadBase,
+          id: initialExpense.id,
+        });
+      }
+
+      return createExpense(payloadBase);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
       setAmount("");
       setCategory("");
       setNote("");
+      setLineItems([]);
       onSuccess?.();
     },
   });
@@ -91,9 +134,27 @@ export function CreateExpenseForm({
     [participants],
   );
 
+  const percentError = useMemo(() => {
+    if (splitType !== "PERCENT") return "";
+    const totalPercent = Object.entries(participants)
+      .filter(([, value]) => value.checked)
+      .reduce((sum, [, value]) => sum + (value.shareAmount ? Number(value.shareAmount) : 0), 0);
+    return Math.round(totalPercent) === 100 ? "" : "Percents must add up to 100%";
+  }, [participants, splitType]);
+
+  const shareError = useMemo(() => {
+    if (splitType !== "SHARES") return "";
+    const invalidShare = Object.entries(participants)
+      .filter(([, value]) => value.checked)
+      .some(([, value]) => !value.shareAmount || Number(value.shareAmount) <= 0);
+    return invalidShare ? "All shares must be greater than 0" : "";
+  }, [participants, splitType]);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!amount || Number.isNaN(Number(amount))) return;
+    if (percentError || shareError) return;
+
     mutation.mutate();
   };
 
@@ -110,6 +171,51 @@ export function CreateExpenseForm({
       [memberId]: { ...prev[memberId], shareAmount: value },
     }));
   };
+
+  const addLineItem = () => {
+    setLineItems((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        description: "",
+        category: "",
+        quantity: "1",
+        unitAmount: "",
+        totalAmount: "",
+      },
+    ]);
+  };
+
+  const updateLineItem = (id: string, field: keyof LineItemState, value: string) => {
+    setLineItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const next = { ...item, [field]: value };
+        if ((field === "quantity" || field === "unitAmount") && next.quantity && next.unitAmount) {
+          const maybeTotal = Number(next.quantity) * Number(next.unitAmount);
+          if (!Number.isNaN(maybeTotal)) {
+            next.totalAmount = maybeTotal.toFixed(2);
+          }
+        }
+        return next;
+      }),
+    );
+  };
+
+  const removeLineItem = (id: string) => {
+    setLineItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  useEffect(() => {
+    if (lineItems.length === 0) return;
+    const total = lineItems.reduce((sum, item) => {
+      const value = Number(item.totalAmount || 0);
+      return sum + (Number.isNaN(value) ? 0 : value);
+    }, 0);
+    if (!Number.isNaN(total)) {
+      setAmount(total.toFixed(2));
+    }
+  }, [lineItems]);
 
   const form = (
     <form className="space-y-4" onSubmit={handleSubmit}>
@@ -217,6 +323,70 @@ export function CreateExpenseForm({
         />
       </div>
 
+      <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-foreground">Line items</p>
+          <Button type="button" size="sm" variant="secondary" onClick={addLineItem}>
+            + Add item
+          </Button>
+        </div>
+        {lineItems.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No line items yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {lineItems.map((item) => (
+              <div
+                key={item.id}
+                className="grid gap-3 rounded-md border bg-background p-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto] md:items-center"
+              >
+                <Input
+                  placeholder="Description"
+                  value={item.description}
+                  onChange={(event) => updateLineItem(item.id, "description", event.target.value)}
+                />
+                <Input
+                  placeholder="Category"
+                  value={item.category}
+                  onChange={(event) => updateLineItem(item.id, "category", event.target.value)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Qty"
+                  value={item.quantity}
+                  onChange={(event) => updateLineItem(item.id, "quantity", event.target.value)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Unit"
+                  value={item.unitAmount}
+                  onChange={(event) => updateLineItem(item.id, "unitAmount", event.target.value)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Total"
+                  value={item.totalAmount}
+                  onChange={(event) => updateLineItem(item.id, "totalAmount", event.target.value)}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeLineItem(item.id)}
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {payerId !== "pending" ? (
         <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
           <div className="flex items-center justify-between">
@@ -266,6 +436,11 @@ export function CreateExpenseForm({
                     </div>
                   );
                 })}
+              {(percentError || shareError) && (
+                <p className="text-xs text-destructive">
+                  {percentError || shareError}
+                </p>
+              )}
             </div>
           ) : null}
         </div>
@@ -288,7 +463,26 @@ export function CreateExpenseForm({
   );
 
   if (!asCard) {
-    return form;
+    return (
+      <div className="space-y-4">
+        {form}
+        {initialExpense && onDelete ? (
+          <div className="flex justify-between border-t pt-3">
+            <div className="text-sm text-muted-foreground">
+              Delete this expense permanently.
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => onDelete(initialExpense.id)}
+            >
+              Delete expense
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   return (
