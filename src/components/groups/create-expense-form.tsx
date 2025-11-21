@@ -135,6 +135,8 @@ export function CreateExpenseForm({
     () => Object.values(participants).filter((p) => p.checked).length,
     [participants],
   );
+  const [participantError, setParticipantError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; note?: string }>({});
 
   const percentError = useMemo(() => {
     if (splitType !== "PERCENT") return "";
@@ -154,7 +156,21 @@ export function CreateExpenseForm({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!amount || Number.isNaN(Number(amount))) return;
+    const nextFieldErrors: { amount?: string; note?: string } = {};
+    if (!amount || Number.isNaN(Number(amount))) {
+      nextFieldErrors.amount = "Amount is required";
+    }
+    if (!note.trim()) {
+      nextFieldErrors.note = "Note is required";
+    }
+    setFieldErrors(nextFieldErrors);
+
+    if (nextFieldErrors.amount || nextFieldErrors.note) return;
+    if (selectedCount === 0) {
+      setParticipantError("Select at least one participant.");
+      return;
+    }
+    setParticipantError(null);
     if (percentError || shareError) return;
 
     mutation.mutate();
@@ -219,6 +235,38 @@ export function CreateExpenseForm({
     }
   }, [lineItems]);
 
+  useEffect(() => {
+    if (!initialExpense) return;
+    setAmount(initialExpense.amount ?? "");
+    setCurrency(initialExpense.currency ?? "USD");
+    setDate(initialExpense.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+    setCategory(initialExpense.category ?? "");
+    setNote(initialExpense.note ?? "");
+    setSplitType(initialExpense.splitType ?? "EVEN");
+    setPayerId(initialExpense.payerId ?? members[0]?.id ?? "pending");
+    setParticipants(() => {
+      const map: ParticipantState = {};
+      members.forEach((member) => {
+        const match = initialExpense.participants.find((p) => p.memberId === member.id);
+        map[member.id] = {
+          checked: Boolean(match),
+          shareAmount: match?.shareAmount ?? undefined,
+        };
+      });
+      return map;
+    });
+    setLineItems(
+      initialExpense.lineItems.map((item) => ({
+        id: item.id,
+        description: item.description ?? "",
+        category: item.category ?? "",
+        quantity: item.quantity ?? "1",
+        unitAmount: item.unitAmount ?? "",
+        totalAmount: item.totalAmount ?? "",
+      })),
+    );
+  }, [initialExpense?.id, members]);
+
   const toNumber = (value: string | number | undefined, fallback: number): number => {
     if (value === "" || value === undefined) return fallback;
     const parsed = typeof value === "number" ? value : Number(value);
@@ -227,7 +275,7 @@ export function CreateExpenseForm({
 
   const form = (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="grid gap-4 md:grid-cols-[1fr_120px]">
+      <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr] md:items-end">
         <div className="space-y-2">
           <Label htmlFor="amount">Amount</Label>
           <div className="relative">
@@ -244,22 +292,10 @@ export function CreateExpenseForm({
             />
             <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
+          {fieldErrors.amount ? (
+            <p className="text-xs text-destructive">{fieldErrors.amount}</p>
+          ) : null}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="currency">Currency</Label>
-          <select
-            id="currency"
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="date">Date</Label>
           <div className="relative">
@@ -288,9 +324,6 @@ export function CreateExpenseForm({
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">
-            Mark as pending if no one has paid yet; add a payer later.
-          </p>
         </div>
       </div>
 
@@ -328,7 +361,9 @@ export function CreateExpenseForm({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder="Add context about this expense"
+          required
         />
+        {fieldErrors.note ? <p className="text-xs text-destructive">{fieldErrors.note}</p> : null}
       </div>
 
       <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
@@ -356,39 +391,33 @@ export function CreateExpenseForm({
                     className="grid gap-2 border-b pb-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-center md:gap-3"
                   >
                     <Input
-                      placeholder="Description"
                       value={item.description}
                       onChange={(event) => updateLineItem(item.id, "description", event.target.value)}
-                />
-                <Input
-                  placeholder="Category"
-                  value={item.category}
-                  onChange={(event) => updateLineItem(item.id, "category", event.target.value)}
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Qty"
-                  value={item.quantity}
-                  onChange={(event) => updateLineItem(item.id, "quantity", event.target.value)}
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Unit"
-                  value={item.unitAmount}
-                  onChange={(event) => updateLineItem(item.id, "unitAmount", event.target.value)}
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Total"
-                  value={item.totalAmount}
-                  onChange={(event) => updateLineItem(item.id, "totalAmount", event.target.value)}
-                />
+                    />
+                    <Input
+                      value={item.category}
+                      onChange={(event) => updateLineItem(item.id, "category", event.target.value)}
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.quantity}
+                      onChange={(event) => updateLineItem(item.id, "quantity", event.target.value)}
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.unitAmount}
+                      onChange={(event) => updateLineItem(item.id, "unitAmount", event.target.value)}
+                    />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={item.totalAmount}
+                      onChange={(event) => updateLineItem(item.id, "totalAmount", event.target.value)}
+                    />
                     <Button
                       type="button"
                       size="icon"
@@ -432,6 +461,7 @@ export function CreateExpenseForm({
               );
             })}
           </div>
+          {participantError ? <p className="text-xs text-destructive">{participantError}</p> : null}
           {splitType !== "EVEN" ? (
             <div className="space-y-2 pt-2">
               {members
@@ -470,7 +500,12 @@ export function CreateExpenseForm({
             type="button"
             variant="destructive"
             size="sm"
-            onClick={() => onDelete(initialExpense.id)}
+            onClick={() => {
+              const ok = window.confirm("Delete this expense? This cannot be undone.");
+              if (ok) {
+                onDelete(initialExpense.id);
+              }
+            }}
           >
             Delete expense
           </Button>

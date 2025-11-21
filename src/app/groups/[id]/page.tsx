@@ -35,6 +35,7 @@ function formatAmount(expense: Expense) {
 type GroupWithHandlers = Group & {
   _toggleAddMember?: () => void;
   _toggleAddExpense?: () => void;
+  _toggleUpload?: () => void;
 };
 
 function GroupMembers({ group }: { group: GroupWithHandlers }) {
@@ -100,9 +101,14 @@ function GroupExpenses({
             Click an expense to edit, adjust splits, or upload a receipt.
           </CardDescription>
         </div>
-        <Button size="sm" variant="secondary" onClick={group._toggleAddExpense}>
-          + Add
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={group._toggleAddExpense}>
+            + Add
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => group._toggleUpload?.()}>
+            Upload
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {sortedExpenses.length === 0 ? (
@@ -176,6 +182,7 @@ export default function GroupDetailPage() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showUploadOnly, setShowUploadOnly] = useState(false);
+  const [isEditingExpense, setIsEditingExpense] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isPending, error } = useQuery<Group>({
@@ -228,33 +235,21 @@ export default function GroupDetailPage() {
                 group={{
                   ...data,
                   _toggleAddMember: () => setShowAddMember(true),
+                  _toggleUpload: () => setShowUploadOnly(true),
                 }}
               />
               <GroupExpenses
                 group={{
                   ...data,
                   _toggleAddExpense: () => setShowAddExpense(true),
+                  _toggleUpload: () => setShowUploadOnly(true),
                 }}
-                onSelectExpense={(expense) => setSelectedExpense(expense)}
+                onSelectExpense={(expense) => {
+                  setSelectedExpense(expense);
+                  setIsEditingExpense(false);
+                }}
               />
             </div>
-
-            <Card className="border-muted bg-background">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                <div>
-                  <CardTitle>Upload a receipt</CardTitle>
-                  <CardDescription>
-                    Let Hearthway parse a PDF, doc, or image to draft an expense and line items.
-                  </CardDescription>
-                </div>
-                <Button size="sm" variant="secondary" onClick={() => setShowUploadOnly(true)}>
-                  Upload file
-                </Button>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Uploads can automatically populate the amount, date, and line items. You can review and edit before saving.
-              </CardContent>
-            </Card>
           </div>
         ) : null}
       </AppShell>
@@ -304,8 +299,8 @@ export default function GroupDetailPage() {
             <UploadExpenseSection
               groupId={groupId}
               onCreated={(expense) => {
-                setSelectedExpense(expense);
                 setShowUploadOnly(false);
+                queryClient.invalidateQueries({ queryKey: ["group", groupId] });
               }}
             />
           </CardContent>
@@ -317,13 +312,15 @@ export default function GroupDetailPage() {
         onClose={() => setSelectedExpense(null)}
       >
         {selectedExpense ? (
-         <ExpenseDialogContent
-           groupId={groupId}
-           expense={selectedExpense}
-           members={data?.members ?? []}
+          <ExpenseDialogContent
+            groupId={groupId}
+            expense={selectedExpense}
+            members={data?.members ?? []}
             onClose={() => setSelectedExpense(null)}
             onExpenseUpdate={(updated) => setSelectedExpense(updated)}
-         />
+            isEditing={isEditingExpense}
+            onEdit={() => setIsEditingExpense(true)}
+          />
         ) : null}
       </Dialog>
     </ProtectedRoute>
@@ -336,9 +333,19 @@ type ExpenseDialogProps = {
   members: Group["members"];
   onClose: () => void;
   onExpenseUpdate?: (expense: Expense) => void;
+  isEditing: boolean;
+  onEdit: () => void;
 };
 
-function ExpenseDialogContent({ expense, groupId, members, onClose, onExpenseUpdate }: ExpenseDialogProps) {
+function ExpenseDialogContent({
+  expense,
+  groupId,
+  members,
+  onClose,
+  onExpenseUpdate,
+  isEditing,
+  onEdit,
+}: ExpenseDialogProps) {
   const queryClient = useQueryClient();
   const expenseQuery = useQuery({
     queryKey: ["expense", expense.id],
@@ -351,48 +358,116 @@ function ExpenseDialogContent({ expense, groupId, members, onClose, onExpenseUpd
 
   const currentExpense = expenseQuery.data ?? expense;
 
+  if (isEditing) {
+    return (
+      <Card className="border-none shadow-none max-h-[80vh] overflow-y-auto">
+        <CardHeader>
+          <CardTitle>Edit expense</CardTitle>
+          <CardDescription>
+            Update details, participants, and uploads.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <CreateExpenseForm
+            groupId={groupId}
+            members={members}
+            onSuccess={(savedExpense) => {
+              queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+              queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
+              onExpenseUpdate?.(savedExpense);
+              onClose();
+            }}
+            asCard={false}
+            initialExpense={currentExpense}
+            onDelete={async (id) => {
+              await deleteExpense(id);
+              await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+              onClose();
+            }}
+          />
+          {currentExpense.uploads && currentExpense.uploads.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Uploads</p>
+              <ul className="space-y-2">
+                {currentExpense.uploads.map((upload) => (
+                  <li
+                    key={upload.id}
+                    className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium text-foreground">{upload.originalFileName}</span>
+                    {upload.signedUrl || upload.fileUrl ? (
+                      <a
+                        href={upload.signedUrl ?? upload.fileUrl ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-medium text-primary underline"
+                      >
+                        View
+                      </a>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-none shadow-none max-h-[80vh] overflow-y-auto">
-      <CardHeader>
-        <CardTitle>Edit expense</CardTitle>
-        <CardDescription>
-          Update details, participants, and uploads.
-        </CardDescription>
+      <CardHeader className="flex items-start justify-between">
+        <div>
+          <CardTitle className="text-xl">
+            {currentExpense.category || "Expense"} · {formatAmount(currentExpense)}
+          </CardTitle>
+          <CardDescription>
+            {new Date(currentExpense.date).toLocaleDateString()} · Split {currentExpense.splitType.toLowerCase()}
+          </CardDescription>
+        </div>
+        <Button size="sm" onClick={onEdit}>
+          Edit
+        </Button>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <CreateExpenseForm
-          groupId={groupId}
-          members={members}
-          onSuccess={(savedExpense) => {
-            queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-            queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
-            onClose();
-            onExpenseUpdate?.(savedExpense);
-          }}
-          asCard={false}
-          initialExpense={currentExpense}
-          onDelete={async (id) => {
-            await deleteExpense(id);
-            await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-            onClose();
-          }}
-        />
-        {currentExpense.uploads && currentExpense.uploads.length > 0 ? (
+      <CardContent className="space-y-4 text-sm">
+        {currentExpense.note ? <p className="text-foreground">{currentExpense.note}</p> : null}
+        <div className="space-y-1">
+          <p className="font-medium text-foreground">Participants</p>
+          <p className="text-muted-foreground">
+            {currentExpense.participants.length
+              ? currentExpense.participants
+                  .map((p) => members.find((m) => m.id === p.memberId)?.displayName || p.memberId)
+                  .join(", ")
+              : "None"}
+          </p>
+        </div>
+        {currentExpense.lineItems.length ? (
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Uploads</p>
-            <ul className="space-y-2">
+            <p className="font-medium text-foreground">Line items</p>
+            <ul className="space-y-1 text-muted-foreground">
+              {currentExpense.lineItems.map((item) => (
+                <li key={item.id} className="flex justify-between">
+                  <span>{item.description || "Item"}</span>
+                  <span>{formatAmount({ ...currentExpense, amount: item.totalAmount })}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {currentExpense.uploads && currentExpense.uploads.length ? (
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">Uploads</p>
+            <ul className="space-y-1">
               {currentExpense.uploads.map((upload) => (
-                <li
-                  key={upload.id}
-                  className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
-                >
+                <li key={upload.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs">
                   <span className="font-medium text-foreground">{upload.originalFileName}</span>
                   {upload.signedUrl || upload.fileUrl ? (
                     <a
                       href={upload.signedUrl ?? upload.fileUrl ?? undefined}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs font-medium text-primary underline"
+                      className="text-primary underline"
                     >
                       View
                     </a>
