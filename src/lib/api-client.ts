@@ -55,6 +55,25 @@ export type ExpenseLineItem = {
   totalAmount: string;
 };
 
+export type UploadedExpense = {
+  id: string;
+  expenseId: string;
+  uploadedById: string | null;
+  fileUrl: string;
+  fileType: string;
+  originalFileName: string;
+  storageBucket: string;
+  storageKey: string;
+  parsingStatus: "PENDING" | "IN_PROGRESS" | "SUCCESS" | "FAILED";
+  rawText?: string | null;
+  parsedJson?: unknown;
+  errorMessage?: string | null;
+  signedUrl?: string;
+  signedUrlExpiresIn?: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Expense = {
   id: string;
   groupId: string;
@@ -71,6 +90,7 @@ export type Expense = {
   shareMap?: Record<string, number> | null;
   receiptUrl?: string | null;
   lineItems: ExpenseLineItem[];
+  uploads?: UploadedExpense[];
   createdAt: string;
 };
 
@@ -499,6 +519,49 @@ export async function deleteExpense(id: string): Promise<void> {
   }
 
   await request(`/expenses/${id}`, "DELETE");
+}
+
+export async function fetchExpense(expenseId: string): Promise<Expense> {
+  if (isMock) {
+    await delay(200);
+    return {
+      ...mockData.group.expenses[0],
+      id: expenseId,
+      uploads: mockData.group.expenses[0].uploads,
+    };
+  }
+
+  const response = await request<{ expense: Expense }>(`/expenses/${expenseId}`, "GET");
+  return response.expense;
+}
+
+export async function uploadExpenseFile(groupId: string, file: File): Promise<Expense> {
+  if (isMock) {
+    await delay(200);
+    const expense: Expense = {
+      ...mockData.group.expenses[0],
+      id: crypto.randomUUID(),
+      groupId,
+    };
+    return expense;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/expense-uploads`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Upload failed");
+  }
+
+  const data = (await response.json()) as { expenseId: string };
+  return fetchExpense(data.expenseId);
 }
 
 function mapToChatMessage(

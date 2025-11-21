@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, DollarSign } from "lucide-react";
+import { CalendarDays, DollarSign, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useEffect } from "react";
 type Props = {
   groupId: string;
   members: Group["members"];
-  onSuccess?: () => void;
+  onSuccess?: (expense: Expense) => void;
   asCard?: boolean;
   initialExpense?: Expense;
   onDelete?: (id: string) => Promise<void> | void;
@@ -103,9 +103,9 @@ export function CreateExpenseForm({
           ? lineItems.map((item) => ({
               description: item.description || undefined,
               category: item.category || undefined,
-              quantity: item.quantity ? Number(item.quantity) : undefined,
-              unitAmount: item.unitAmount ? Number(item.unitAmount) : undefined,
-              totalAmount: Number(item.totalAmount || item.unitAmount || 0),
+              quantity: toNumber(item.quantity, 1),
+              unitAmount: toNumber(item.unitAmount, 0),
+              totalAmount: toNumber(item.totalAmount || item.unitAmount, 0),
             }))
           : undefined,
       };
@@ -119,13 +119,15 @@ export function CreateExpenseForm({
 
       return createExpense(payloadBase);
     },
-    onSuccess: async () => {
+    onSuccess: async (savedExpense) => {
       await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-      setAmount("");
-      setCategory("");
-      setNote("");
-      setLineItems([]);
-      onSuccess?.();
+      if (!initialExpense) {
+        setAmount("");
+        setCategory("");
+        setNote("");
+        setLineItems([]);
+      }
+      onSuccess?.(savedExpense);
     },
   });
 
@@ -216,6 +218,12 @@ export function CreateExpenseForm({
       setAmount(total.toFixed(2));
     }
   }, [lineItems]);
+
+  const toNumber = (value: string | number | undefined, fallback: number): number => {
+    if (value === "" || value === undefined) return fallback;
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
 
   const form = (
     <form className="space-y-4" onSubmit={handleSubmit}>
@@ -330,19 +338,27 @@ export function CreateExpenseForm({
             + Add item
           </Button>
         </div>
-        {lineItems.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No line items yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {lineItems.map((item) => (
-              <div
-                key={item.id}
-                className="grid gap-3 rounded-md border bg-background p-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto] md:items-center"
-              >
-                <Input
-                  placeholder="Description"
-                  value={item.description}
-                  onChange={(event) => updateLineItem(item.id, "description", event.target.value)}
+            {lineItems.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No line items yet.</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-1 text-xs uppercase tracking-wide text-muted-foreground md:grid">
+                  <span>Description</span>
+                  <span>Category</span>
+                  <span>Qty</span>
+                  <span>Unit</span>
+                  <span>Total</span>
+                  <span className="sr-only">Actions</span>
+                </div>
+                {lineItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="grid gap-2 border-b pb-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-center md:gap-3"
+                  >
+                    <Input
+                      placeholder="Description"
+                      value={item.description}
+                      onChange={(event) => updateLineItem(item.id, "description", event.target.value)}
                 />
                 <Input
                   placeholder="Category"
@@ -373,19 +389,21 @@ export function CreateExpenseForm({
                   value={item.totalAmount}
                   onChange={(event) => updateLineItem(item.id, "totalAmount", event.target.value)}
                 />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => removeLineItem(item.id)}
-                >
-                  Remove
-                </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="justify-self-end text-destructive"
+                      onClick={() => removeLineItem(item.id)}
+                      aria-label="Remove line item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
 
       {payerId !== "pending" ? (
         <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
@@ -446,43 +464,40 @@ export function CreateExpenseForm({
         </div>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-end gap-3">
+        {initialExpense && onDelete ? (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => onDelete(initialExpense.id)}
+          >
+            Delete expense
+          </Button>
+        ) : null}
         <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving..." : "Add expense"}
+          {mutation.isPending
+            ? initialExpense
+              ? "Updating..."
+              : "Saving..."
+            : initialExpense
+              ? "Update expense"
+              : "Add expense"}
         </Button>
         {mutation.error ? (
           <p className="text-sm text-destructive">
-            {mutation.error.message || "Could not create expense."}
+            {mutation.error.message || "Could not save expense."}
           </p>
         ) : null}
         {mutation.isSuccess ? (
-          <p className="text-sm text-muted-foreground">Expense saved.</p>
+          <p className="text-sm text-muted-foreground">Saved.</p>
         ) : null}
       </div>
     </form>
   );
 
   if (!asCard) {
-    return (
-      <div className="space-y-4">
-        {form}
-        {initialExpense && onDelete ? (
-          <div className="flex justify-between border-t pt-3">
-            <div className="text-sm text-muted-foreground">
-              Delete this expense permanently.
-            </div>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => onDelete(initialExpense.id)}
-            >
-              Delete expense
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    );
+    return <div className="space-y-4">{form}</div>;
   }
 
   return (
