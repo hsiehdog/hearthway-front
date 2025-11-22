@@ -19,7 +19,13 @@ import { AddMemberForm } from "@/components/groups/add-member-form";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Expense, Group, deleteExpense, fetchExpense, fetchGroup } from "@/lib/api-client";
+import {
+  Expense,
+  Group,
+  deleteExpense,
+  fetchExpense,
+  fetchGroup,
+} from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 
 function formatAmount(expense: Expense) {
@@ -102,10 +108,18 @@ function GroupExpenses({
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={group._toggleAddExpense}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={group._toggleAddExpense}
+          >
             + Add
           </Button>
-          <Button size="sm" variant="outline" onClick={() => group._toggleUpload?.()}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => group._toggleUpload?.()}
+          >
             Upload
           </Button>
         </div>
@@ -127,8 +141,10 @@ function GroupExpenses({
                     {expense.category || "Expense"} · {formatAmount(expense)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(expense.date).toLocaleDateString()} · Split{" "}
-                    {expense.splitType.toLowerCase()}
+                    {new Date(expense.date).toLocaleDateString("en-US", {
+                      timeZone: "UTC",
+                    })}{" "}
+                    · Split {expense.splitType.toLowerCase()}
                   </p>
                 </div>
               </div>
@@ -292,7 +308,8 @@ export default function GroupDetailPage() {
           <CardHeader>
             <CardTitle>Upload a receipt</CardTitle>
             <CardDescription>
-              Upload a PDF, doc, or image and we’ll parse it into an expense draft.
+              Upload a PDF, doc, or image and we’ll parse it into an expense
+              draft.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -373,7 +390,9 @@ function ExpenseDialogContent({
             members={members}
             onSuccess={(savedExpense) => {
               queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-              queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
+              queryClient.invalidateQueries({
+                queryKey: ["expense", expense.id],
+              });
               onExpenseUpdate?.(savedExpense);
               onClose();
             }}
@@ -381,20 +400,26 @@ function ExpenseDialogContent({
             initialExpense={currentExpense}
             onDelete={async (id) => {
               await deleteExpense(id);
-              await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+              await queryClient.invalidateQueries({
+                queryKey: ["group", groupId],
+              });
               onClose();
             }}
           />
           {currentExpense.uploads && currentExpense.uploads.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Uploads</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Uploads
+              </p>
               <ul className="space-y-2">
                 {currentExpense.uploads.map((upload) => (
                   <li
                     key={upload.id}
                     className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
                   >
-                    <span className="font-medium text-foreground">{upload.originalFileName}</span>
+                    <span className="font-medium text-foreground">
+                      {upload.originalFileName}
+                    </span>
                     {upload.signedUrl || upload.fileUrl ? (
                       <a
                         href={upload.signedUrl ?? upload.fileUrl ?? undefined}
@@ -420,10 +445,12 @@ function ExpenseDialogContent({
       <CardHeader className="flex items-start justify-between">
         <div>
           <CardTitle className="text-xl">
-            {currentExpense.category || "Expense"} · {formatAmount(currentExpense)}
+            {currentExpense.category || "Expense"} ·{" "}
+            {formatAmount(currentExpense)}
           </CardTitle>
           <CardDescription>
-            {new Date(currentExpense.date).toLocaleDateString()} · Split {currentExpense.splitType.toLowerCase()}
+            {new Date(currentExpense.date).toLocaleDateString()} · Split{" "}
+            {currentExpense.splitType.toLowerCase()}
           </CardDescription>
         </div>
         <Button size="sm" onClick={onEdit}>
@@ -431,13 +458,19 @@ function ExpenseDialogContent({
         </Button>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {currentExpense.note ? <p className="text-foreground">{currentExpense.note}</p> : null}
+        {currentExpense.note ? (
+          <p className="text-foreground">{currentExpense.note}</p>
+        ) : null}
         <div className="space-y-1">
           <p className="font-medium text-foreground">Participants</p>
           <p className="text-muted-foreground">
             {currentExpense.participants.length
               ? currentExpense.participants
-                  .map((p) => members.find((m) => m.id === p.memberId)?.displayName || p.memberId)
+                  .map(
+                    (p) =>
+                      members.find((m) => m.id === p.memberId)?.displayName ||
+                      p.memberId
+                  )
                   .join(", ")
               : "None"}
           </p>
@@ -449,7 +482,12 @@ function ExpenseDialogContent({
               {currentExpense.lineItems.map((item) => (
                 <li key={item.id} className="flex justify-between">
                   <span>{item.description || "Item"}</span>
-                  <span>{formatAmount({ ...currentExpense, amount: item.totalAmount })}</span>
+                  <span>
+                    {formatAmount({
+                      ...currentExpense,
+                      amount: item.totalAmount,
+                    })}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -460,8 +498,13 @@ function ExpenseDialogContent({
             <p className="font-medium text-foreground">Uploads</p>
             <ul className="space-y-1">
               {currentExpense.uploads.map((upload) => (
-                <li key={upload.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs">
-                  <span className="font-medium text-foreground">{upload.originalFileName}</span>
+                <li
+                  key={upload.id}
+                  className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs"
+                >
+                  <span className="font-medium text-foreground">
+                    {upload.originalFileName}
+                  </span>
                   {upload.signedUrl || upload.fileUrl ? (
                     <a
                       href={upload.signedUrl ?? upload.fileUrl ?? undefined}
