@@ -52,20 +52,27 @@ function GroupCostsCard({ group }: { group: Group }) {
       return sum + (Number.isNaN(amount) ? 0 : amount);
     }, 0);
 
-    const perParticipant = group.expenses.reduce<Record<string, number>>((acc, expense) => {
-      if (!expense.participantCosts) return acc;
-      Object.entries(expense.participantCosts).forEach(([memberId, value]) => {
-        const numeric = Number(value);
-        if (Number.isNaN(numeric)) return;
-        acc[memberId] = (acc[memberId] ?? 0) + numeric;
-      });
-      return acc;
-    }, {});
+    const perParticipant = group.expenses.reduce<Record<string, number>>(
+      (acc, expense) => {
+        if (!expense.participantCosts) return acc;
+        Object.entries(expense.participantCosts).forEach(
+          ([memberId, value]) => {
+            const numeric = Number(value);
+            if (Number.isNaN(numeric)) return;
+            acc[memberId] = (acc[memberId] ?? 0) + numeric;
+          }
+        );
+        return acc;
+      },
+      {}
+    );
 
-    const entries = Object.entries(perParticipant).map(([memberId, amount]) => ({
-      memberId,
-      amount,
-    }));
+    const entries = Object.entries(perParticipant).map(
+      ([memberId, amount]) => ({
+        memberId,
+        amount,
+      })
+    );
 
     return { currency, total, entries };
   }, [group.expenses]);
@@ -90,30 +97,43 @@ function GroupCostsCard({ group }: { group: Group }) {
       </CardHeader>
       <CardContent>
         {summary.entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No participant costs yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No participant costs yet.
+          </p>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Total cost</p>
-              <p className="text-2xl font-semibold text-foreground">{formatCurrency(summary.total)}</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Total cost
+              </p>
+              <p className="text-2xl font-semibold text-foreground">
+                {formatCurrency(summary.total)}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Based on {group.expenses.length} expense{group.expenses.length === 1 ? "" : "s"}.
+                Based on {group.expenses.length} expense
+                {group.expenses.length === 1 ? "" : "s"}.
               </p>
             </div>
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Cost per participant</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Cost per participant
+              </p>
               <ul className="space-y-2">
                 {summary.entries
                   .sort((a, b) => b.amount - a.amount)
                   .map(({ memberId, amount }) => {
-                    const name = group.members.find((m) => m.id === memberId)?.displayName ?? memberId;
+                    const name =
+                      group.members.find((m) => m.id === memberId)
+                        ?.displayName ?? memberId;
                     return (
                       <li
                         key={memberId}
                         className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
                       >
                         <span className="text-foreground">{name}</span>
-                        <span className="font-medium">{formatCurrency(amount)}</span>
+                        <span className="font-medium">
+                          {formatCurrency(amount)}
+                        </span>
                       </li>
                     );
                   })}
@@ -217,48 +237,79 @@ function GroupExpenses({
               onClick={() => onSelectExpense(expense)}
               className="w-full rounded-lg border bg-muted/20 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="space-y-1">
                   <p className="text-sm font-semibold text-foreground">
-                    {expense.category || "Expense"} · {formatAmount(expense)}
+                    {expense.category || "Expense"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(expense.date).toLocaleDateString("en-US", {
-                      timeZone: "UTC",
-                    })}{" "}
-                    · Split {expense.splitType.toLowerCase()}
+                  {expense.note ? (
+                    <p className="text-xs text-muted-foreground">
+                      {expense.note}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="text-right space-y-1">
+                  <p className="text-base font-semibold text-foreground">
+                    {formatAmount(expense)}
                   </p>
+                  <Badge
+                    variant={
+                      expense.status === "PAID"
+                        ? "default"
+                        : expense.status === "REIMBURSED"
+                        ? "secondary"
+                        : "outline"
+                    }
+                    className="text-[11px] font-medium"
+                  >
+                    {expense.status?.toLowerCase() ?? "pending"}
+                  </Badge>
                 </div>
               </div>
-              {expense.note ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {expense.note}
-                </p>
-              ) : null}
               <Separator className="my-3" />
-              <div className="text-xs text-muted-foreground">
-                {expense.payerId ? (
+              {expense.payerId ? (
+                <div className="text-xs text-muted-foreground">
                   <p>
                     Paid by:{" "}
                     {group.members.find((m) => m.id === expense.payerId)
                       ?.displayName || "Member"}
                   </p>
-                ) : (
-                  <p>Not paid yet</p>
-                )}
-              </div>
+                </div>
+              ) : null}
               <div className="text-xs text-muted-foreground">
                 {expense.participants.length === 0 ? (
                   <p>No participants listed.</p>
                 ) : (
                   <p>
-                    Split among:{" "}
+                    {expense.splitType === "EVEN"
+                      ? "Split evenly: "
+                      : expense.splitType === "SHARES"
+                      ? "Split shares: "
+                      : expense.splitType === "PERCENT"
+                      ? "Split percentage: "
+                      : "Split among: "}
                     {expense.participants
                       .map((participant) => {
                         const member = group.members.find(
                           (m) => m.id === participant.memberId
                         );
-                        return member?.displayName || participant.memberId;
+                        const name =
+                          member?.displayName || participant.memberId;
+                        if (expense.splitType === "SHARES") {
+                          const shares =
+                            expense.shareMap?.[participant.memberId] ??
+                            participant.shareAmount ??
+                            "—";
+                          return `${name} (${shares})`;
+                        }
+                        if (expense.splitType === "PERCENT") {
+                          const percent =
+                            expense.percentMap?.[participant.memberId] ??
+                            participant.shareAmount ??
+                            "—";
+                          return `${name} (${percent}%)`;
+                        }
+                        return name;
                       })
                       .join(", ")}
                   </p>
