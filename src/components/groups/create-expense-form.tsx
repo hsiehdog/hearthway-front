@@ -37,6 +37,7 @@ export function CreateExpenseForm({
   initialExpense,
   onDelete,
 }: Props) {
+  const resolveInitialPayer = () => (initialExpense ? initialExpense.payerId ?? "pending" : members[0]?.id ?? "pending");
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState(initialExpense?.amount ?? "");
   const [currency, setCurrency] = useState(initialExpense?.currency ?? "USD");
@@ -49,7 +50,7 @@ export function CreateExpenseForm({
     initialExpense?.splitType ?? "EVEN",
   );
   const [payerId, setPayerId] = useState<string | "pending">(
-    initialExpense?.payerId ?? members[0]?.id ?? "pending",
+    resolveInitialPayer(),
   );
   const [participants, setParticipants] = useState<ParticipantState>(() => {
     if (initialExpense) {
@@ -243,7 +244,7 @@ export function CreateExpenseForm({
     setCategory(initialExpense.category ?? "");
     setNote(initialExpense.note ?? "");
     setSplitType(initialExpense.splitType ?? "EVEN");
-    setPayerId(initialExpense.payerId ?? members[0]?.id ?? "pending");
+    setPayerId(initialExpense.payerId ?? "pending");
     setParticipants(() => {
       const map: ParticipantState = {};
       members.forEach((member) => {
@@ -434,65 +435,62 @@ export function CreateExpenseForm({
             )}
           </div>
 
-      {payerId !== "pending" ? (
-        <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-foreground">Split among</p>
-            <p className="text-xs text-muted-foreground">{selectedCount} selected</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {members.map((member) => {
-              const state = participants[member.id];
-              const isSelected = Boolean(state?.checked);
-              return (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => toggleParticipant(member.id)}
-                  className={`rounded-full border px-3 py-1 text-sm transition ${
-                    isSelected
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                  }`}
-                  aria-pressed={isSelected}
-                >
-                  {member.displayName}
-                </button>
-              );
-            })}
-          </div>
-          {participantError ? <p className="text-xs text-destructive">{participantError}</p> : null}
-          {splitType !== "EVEN" ? (
-            <div className="space-y-2 pt-2">
-              {members
-                .filter((m) => participants[m.id]?.checked)
-                .map((member) => {
-                  const state = participants[member.id];
-                  return (
-                    <div key={member.id} className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                      <span>{member.displayName}</span>
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        className="h-9 w-28"
-                        placeholder={splitType === "PERCENT" ? "%" : "Shares"}
-                        value={state?.shareAmount ?? ""}
-                        onChange={(event) => updateShareAmount(member.id, event.target.value)}
-                      />
-                    </div>
-                  );
-                })}
-              {(percentError || shareError) && (
-                <p className="text-xs text-destructive">
-                  {percentError || shareError}
-                </p>
-              )}
-            </div>
-          ) : null}
+      <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-foreground">Split among</p>
+          <p className="text-xs text-muted-foreground">{selectedCount} selected</p>
         </div>
-      ) : null}
+        <div className="flex flex-wrap gap-2">
+          {members.map((member) => {
+            const state = participants[member.id];
+            const isSelected = Boolean(state?.checked);
+            return (
+              <button
+                key={member.id}
+                type="button"
+                onClick={() => toggleParticipant(member.id)}
+                className={`rounded-full border px-3 py-1 text-sm transition ${
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                }`}
+                aria-pressed={isSelected}
+              >
+                {member.displayName}
+              </button>
+            );
+          })}
+        </div>
+        {participantError ? <p className="text-xs text-destructive">{participantError}</p> : null}
+        {splitType !== "EVEN" ? (
+          <div className="space-y-2 pt-2">
+            {members
+              .filter((m) => participants[m.id]?.checked)
+              .map((member) => {
+                const state = participants[member.id];
+                return (
+                  <div key={member.id} className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                    <span>{member.displayName}</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      className="h-9 w-28"
+                      placeholder={splitType === "PERCENT" ? "%" : "Shares"}
+                      value={state?.shareAmount ?? ""}
+                      onChange={(event) => updateShareAmount(member.id, event.target.value)}
+                    />
+                  </div>
+                );
+              })}
+            {(percentError || shareError) && (
+              <p className="text-xs text-destructive">
+                {percentError || shareError}
+              </p>
+            )}
+          </div>
+        ) : null}
+      </div>
 
       <div className="flex items-center justify-end gap-3">
         {initialExpense && onDelete ? (
