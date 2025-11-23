@@ -44,6 +44,88 @@ type GroupWithHandlers = Group & {
   _toggleUpload?: () => void;
 };
 
+function GroupCostsCard({ group }: { group: Group }) {
+  const summary = useMemo(() => {
+    const currency = group.expenses[0]?.currency || "USD";
+    const total = group.expenses.reduce((sum, expense) => {
+      const amount = Number(expense.amount);
+      return sum + (Number.isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    const perParticipant = group.expenses.reduce<Record<string, number>>((acc, expense) => {
+      if (!expense.participantCosts) return acc;
+      Object.entries(expense.participantCosts).forEach(([memberId, value]) => {
+        const numeric = Number(value);
+        if (Number.isNaN(numeric)) return;
+        acc[memberId] = (acc[memberId] ?? 0) + numeric;
+      });
+      return acc;
+    }, {});
+
+    const entries = Object.entries(perParticipant).map(([memberId, amount]) => ({
+      memberId,
+      amount,
+    }));
+
+    return { currency, total, entries };
+  }, [group.expenses]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: summary.currency,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  return (
+    <Card className="border-muted bg-background">
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle>Costs</CardTitle>
+          <CardDescription>Totals for this project/trip.</CardDescription>
+        </div>
+        <Badge variant="outline" className="text-sm">
+          Total {formatCurrency(summary.total)}
+        </Badge>
+      </CardHeader>
+      <CardContent>
+        {summary.entries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No participant costs yet.</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Total cost</p>
+              <p className="text-2xl font-semibold text-foreground">{formatCurrency(summary.total)}</p>
+              <p className="text-xs text-muted-foreground">
+                Based on {group.expenses.length} expense{group.expenses.length === 1 ? "" : "s"}.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Cost per participant</p>
+              <ul className="space-y-2">
+                {summary.entries
+                  .sort((a, b) => b.amount - a.amount)
+                  .map(({ memberId, amount }) => {
+                    const name = group.members.find((m) => m.id === memberId)?.displayName ?? memberId;
+                    return (
+                      <li
+                        key={memberId}
+                        className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      >
+                        <span className="text-foreground">{name}</span>
+                        <span className="font-medium">{formatCurrency(amount)}</span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function GroupMembers({ group }: { group: GroupWithHandlers }) {
   return (
     <Card className="border-muted bg-background">
@@ -246,6 +328,8 @@ export default function GroupDetailPage() {
               </CardHeader>
             </Card>
 
+            <GroupCostsCard group={data} />
+
             <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr] lg:items-start">
               <GroupMembers
                 group={{
@@ -374,6 +458,17 @@ function ExpenseDialogContent({
   });
 
   const currentExpense = expenseQuery.data ?? expense;
+  const formatParticipantCost = (value?: string) => {
+    if (!value) return null;
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return value;
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currentExpense.currency || "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numeric);
+  };
 
   if (isEditing) {
     return (
@@ -463,17 +558,26 @@ function ExpenseDialogContent({
         ) : null}
         <div className="space-y-1">
           <p className="font-medium text-foreground">Participants</p>
-          <p className="text-muted-foreground">
-            {currentExpense.participants.length
-              ? currentExpense.participants
-                  .map(
-                    (p) =>
-                      members.find((m) => m.id === p.memberId)?.displayName ||
-                      p.memberId
-                  )
-                  .join(", ")
-              : "None"}
-          </p>
+          {currentExpense.participants.length ? (
+            <ul className="space-y-1 text-muted-foreground">
+              {currentExpense.participants.map((p) => {
+                const participantName =
+                  members.find((m) => m.id === p.memberId)?.displayName ||
+                  p.memberId;
+                const cost = formatParticipantCost(
+                  currentExpense.participantCosts?.[p.memberId]
+                );
+                return (
+                  <li key={p.id} className="flex items-center justify-between">
+                    <span className="text-foreground">{participantName}</span>
+                    <span>{cost ?? "—"}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">None</p>
+          )}
         </div>
         {currentExpense.lineItems.length ? (
           <div className="space-y-2">

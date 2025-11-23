@@ -86,6 +86,7 @@ export type Expense = {
   note?: string | null;
   splitType: "EVEN" | "PERCENT" | "SHARES";
   participants: ExpenseParticipant[];
+  participantCosts?: Record<string, string>;
   percentMap?: Record<string, number> | null;
   shareMap?: Record<string, number> | null;
   receiptUrl?: string | null;
@@ -235,6 +236,7 @@ const mockData = {
         category: "Dinner",
         note: "Tapas night",
         splitType: "EVEN",
+        participantCosts: { m1: "60.25", m2: "60.25" },
         participants: [
           { id: "ep1", expenseId: "e1", memberId: "m1", shareAmount: "60.25" },
           { id: "ep2", expenseId: "e1", memberId: "m2", shareAmount: "60.25" },
@@ -473,6 +475,7 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
           memberId: p.memberId,
           shareAmount: p.shareAmount?.toString() ?? null,
         })) ?? [],
+      participantCosts: {},
       percentMap: payload.percentMap || null,
       shareMap: payload.shareMap || null,
       receiptUrl: payload.receiptUrl,
@@ -503,6 +506,7 @@ export async function updateExpense(payload: UpdateExpensePayload): Promise<Expe
       ...payload,
       id: payload.id,
       payerId: payload.payerMemberId ?? null,
+      participantCosts: {},
       createdAt: new Date().toISOString(),
     };
   }
