@@ -235,7 +235,7 @@ function GroupCostsCard({ group }: { group: Group }) {
 
   return (
     <Card className="border-muted bg-background">
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Costs</CardTitle>
           <p className="text-2xl font-semibold text-foreground">
@@ -247,11 +247,11 @@ function GroupCostsCard({ group }: { group: Group }) {
           </p>
         </div>
         {summary.entries.length ? (
-          <div className="w-full rounded-md border bg-muted/20 px-3 py-2 sm:w-[22rem] sm:self-end">
+          <div className="w-full rounded-md border bg-muted/20 px-3 py-3 sm:w-[22rem] sm:ml-auto sm:self-end">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Cost per participant
             </p>
-            <ul className="mt-1 space-y-1">
+            <ul className="mt-2 space-y-1">
               {summary.entries
                 .sort((a, b) => b.amount - a.amount)
                 .map(({ memberId, amount }) => {
@@ -321,7 +321,7 @@ function PaymentsCard({ group }: { group: Group }) {
 
   return (
     <Card className="border-muted bg-background">
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Payments</CardTitle>
           <p className="text-2xl font-semibold text-foreground">{formatCurrency(summary.paidTotal)}</p>
@@ -330,9 +330,9 @@ function PaymentsCard({ group }: { group: Group }) {
           </p>
         </div>
         {summary.entries.length ? (
-          <div className="w-full rounded-md border bg-muted/20 px-3 py-2 sm:w-[22rem] sm:self-end">
+          <div className="w-full rounded-md border bg-muted/20 px-3 py-3 sm:w-[22rem] sm:ml-auto sm:self-end">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Paid per participant</p>
-            <ul className="mt-1 space-y-1">
+            <ul className="mt-2 space-y-1">
               {summary.entries
                 .sort((a, b) => b.amount - a.amount)
                 .map(({ memberId, amount }) => {
@@ -348,7 +348,7 @@ function PaymentsCard({ group }: { group: Group }) {
           </div>
         ) : null}
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-3">
         {summary.entries.length === 0 ? (
           <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
         ) : (
@@ -577,17 +577,18 @@ export default function GroupDetailPage() {
               </CardHeader>
             </Card>
 
-            <GroupCostsCard group={data} />
-            <PaymentsCard group={data} />
-
             <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr] lg:items-start">
-              <GroupMembers
-                group={{
-                  ...data,
-                  _toggleAddMember: () => setShowAddMember(true),
-                  _toggleUpload: () => setShowUploadOnly(true),
-                }}
-              />
+              <div className="space-y-4">
+                <GroupCostsCard group={data} />
+                <PaymentsCard group={data} />
+                <GroupMembers
+                  group={{
+                    ...data,
+                    _toggleAddMember: () => setShowAddMember(true),
+                    _toggleUpload: () => setShowUploadOnly(true),
+                  }}
+                />
+              </div>
               <GroupExpenses
                 group={{
                   ...data,
@@ -725,6 +726,7 @@ function ExpenseDialogContent({
     await queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
     await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
     setShowPaymentModal(false);
+    onClose();
   };
 
   if (isEditing) {
