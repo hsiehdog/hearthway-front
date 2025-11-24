@@ -521,6 +521,7 @@ export type PayExpensePayload = {
   payerMemberId: string;
   notes?: string;
   paidAt?: string;
+  receiptUrl?: string;
 };
 
 export async function payExpense(payload: PayExpensePayload): Promise<{ expense: Expense }> {

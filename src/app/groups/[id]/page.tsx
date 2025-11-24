@@ -75,7 +75,7 @@ function PaymentsSection({
       await payExpense({
         expenseId: expense.id,
         amount: Number(amount),
-        payerMemberId: payerId || undefined,
+        payerMemberId: payerId,
         notes: notes || undefined,
         paidAt,
       });
@@ -247,7 +247,7 @@ function GroupCostsCard({ group }: { group: Group }) {
           </p>
         </div>
         {summary.entries.length ? (
-          <div className="w-full rounded-md border bg-muted/20 px-3 py-2 sm:w-72 sm:self-end">
+          <div className="w-full rounded-md border bg-muted/20 px-3 py-2 sm:w-[22rem] sm:self-end">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Cost per participant
             </p>
@@ -280,6 +280,80 @@ function GroupCostsCard({ group }: { group: Group }) {
             No participant costs yet.
           </p>
         ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PaymentsCard({ group }: { group: Group }) {
+  const summary = useMemo(() => {
+    const currency = group.expenses[0]?.currency || "USD";
+    const paidByMember = group.expenses.reduce<Record<string, number>>((acc, expense) => {
+      (expense.payments ?? []).forEach((payment) => {
+        const amount = Number(payment.amount);
+        if (Number.isNaN(amount)) return;
+        acc[payment.payerId] = (acc[payment.payerId] ?? 0) + amount;
+      });
+      return acc;
+    }, {});
+
+    const paidTotal = Object.values(paidByMember).reduce((sum, val) => sum + val, 0);
+    const unpaidTotal = group.expenses.reduce((sum, expense) => {
+      const paid = (expense.payments ?? []).reduce((sub, payment) => sub + Number(payment.amount || 0), 0);
+      const remaining = Number(expense.amount) - paid;
+      return sum + (Number.isNaN(remaining) ? 0 : Math.max(remaining, 0));
+    }, 0);
+
+    const entries = Object.entries(paidByMember).map(([memberId, amount]) => ({
+      memberId,
+      amount,
+    }));
+
+    return { currency, entries, unpaidTotal, paidTotal };
+  }, [group.expenses]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: summary.currency,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  return (
+    <Card className="border-muted bg-background">
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle>Payments</CardTitle>
+          <p className="text-2xl font-semibold text-foreground">{formatCurrency(summary.paidTotal)}</p>
+          <p className="text-xs text-muted-foreground">
+            Unpaid total {formatCurrency(summary.unpaidTotal)}
+          </p>
+        </div>
+        {summary.entries.length ? (
+          <div className="w-full rounded-md border bg-muted/20 px-3 py-2 sm:w-[22rem] sm:self-end">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Paid per participant</p>
+            <ul className="mt-1 space-y-1">
+              {summary.entries
+                .sort((a, b) => b.amount - a.amount)
+                .map(({ memberId, amount }) => {
+                  const name = group.members.find((m) => m.id === memberId)?.displayName ?? memberId;
+                  return (
+                    <li key={memberId} className="flex items-center justify-between text-sm">
+                      <span className="text-foreground">{name}</span>
+                      <span className="font-medium">{formatCurrency(amount)}</span>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
+        ) : null}
+      </CardHeader>
+      <CardContent>
+        {summary.entries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+        ) : (
+          null
+        )}
       </CardContent>
     </Card>
   );
@@ -504,6 +578,7 @@ export default function GroupDetailPage() {
             </Card>
 
             <GroupCostsCard group={data} />
+            <PaymentsCard group={data} />
 
             <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr] lg:items-start">
               <GroupMembers
