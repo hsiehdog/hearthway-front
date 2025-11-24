@@ -17,6 +17,7 @@ type Props = {
   asCard?: boolean;
   initialExpense?: Expense;
   onDelete?: (id: string) => Promise<void> | void;
+  paymentsSlot?: React.ReactNode;
 };
 
 type ParticipantState = Record<string, { checked: boolean; shareAmount?: string }>;
@@ -36,8 +37,8 @@ export function CreateExpenseForm({
   asCard = true,
   initialExpense,
   onDelete,
+  paymentsSlot,
 }: Props) {
-  const resolveInitialPayer = () => (initialExpense ? initialExpense.payerId ?? "pending" : members[0]?.id ?? "pending");
   const queryClient = useQueryClient();
   const [name, setName] = useState(initialExpense?.name ?? "");
   const [amount, setAmount] = useState(initialExpense?.amount ?? "");
@@ -48,9 +49,6 @@ export function CreateExpenseForm({
   const [description, setDescription] = useState(initialExpense?.description ?? "");
   const [splitType, setSplitType] = useState<"EVEN" | "PERCENT" | "SHARES">(
     initialExpense?.splitType ?? "EVEN",
-  );
-  const [payerId, setPayerId] = useState<string | "pending">(
-    resolveInitialPayer(),
   );
   const [participants, setParticipants] = useState<ParticipantState>(() => {
     if (initialExpense) {
@@ -86,8 +84,6 @@ export function CreateExpenseForm({
     mutationFn: () => {
       const payloadBase = {
         groupId,
-        payerMemberId: payerId === "pending" ? undefined : payerId,
-        status: payerId === "pending" ? "PENDING" : "PAID",
         amount: Number(amount),
         currency,
         date,
@@ -243,7 +239,6 @@ export function CreateExpenseForm({
     setName(initialExpense.name ?? "");
     setDescription(initialExpense.description ?? "");
     setSplitType(initialExpense.splitType ?? "EVEN");
-    setPayerId(initialExpense.payerId ?? "pending");
     setParticipants(() => {
       const map: ParticipantState = {};
       members.forEach((member) => {
@@ -319,22 +314,6 @@ export function CreateExpenseForm({
             />
             <CalendarDays className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="payer">Payer</Label>
-          <select
-            id="payer"
-            value={payerId}
-            onChange={(event) => setPayerId(event.target.value as string | "pending")}
-            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="pending">Pending</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.displayName}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -491,6 +470,8 @@ export function CreateExpenseForm({
           </div>
         ) : null}
       </div>
+
+      {paymentsSlot ? <div className="space-y-2">{paymentsSlot}</div> : null}
 
       <div className="flex items-center justify-end gap-3">
         {initialExpense && onDelete ? (

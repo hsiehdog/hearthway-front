@@ -55,6 +55,19 @@ export type ExpenseLineItem = {
   totalAmount: string;
 };
 
+export type ExpensePayment = {
+  id: string;
+  expenseId: string;
+  payerId: string;
+  amount: string;
+  currency: string;
+  notes?: string | null;
+  receiptUrl?: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type UploadedExpense = {
   id: string;
   expenseId: string;
@@ -77,8 +90,7 @@ export type UploadedExpense = {
 export type Expense = {
   id: string;
   groupId: string;
-  payerId: string | null;
-  status?: "PENDING" | "PAID" | "REIMBURSED";
+  status?: "PENDING" | "PAID" | "REIMBURSED" | "PARTIALLY_PAID";
   amount: string;
   currency: string;
   date: string;
@@ -87,8 +99,8 @@ export type Expense = {
   splitType: "EVEN" | "PERCENT" | "SHARES";
   participants: ExpenseParticipant[];
   participantCosts?: Record<string, string>;
-  receiptUrl?: string | null;
   lineItems: ExpenseLineItem[];
+  payments?: ExpensePayment[];
   uploads?: UploadedExpense[];
   createdAt: string;
 };
@@ -227,7 +239,6 @@ const mockData = {
       {
         id: "e1",
         groupId: "demo-group",
-        payerId: "m1",
         amount: "120.50",
         currency: "USD",
         date: new Date().toISOString(),
@@ -239,7 +250,6 @@ const mockData = {
           { id: "ep1", expenseId: "e1", memberId: "m1", shareAmount: "60.25" },
           { id: "ep2", expenseId: "e1", memberId: "m2", shareAmount: "60.25" },
         ],
-        receiptUrl: null,
         lineItems: [
           {
             id: "li1",
@@ -250,6 +260,7 @@ const mockData = {
             totalAmount: "120.50",
           },
         ],
+        payments: [],
         createdAt: new Date().toISOString(),
       },
     ],
@@ -428,7 +439,6 @@ export async function addMemberToGroup(payload: AddGroupMemberPayload): Promise<
 
 export type CreateExpensePayload = {
   groupId: string;
-  payerMemberId?: string;
   status?: Expense["status"];
   amount: number;
   currency?: string;
@@ -437,7 +447,6 @@ export type CreateExpensePayload = {
   description?: string;
   splitType: Expense["splitType"];
   participants?: { memberId: string; shareAmount?: number }[];
-  receiptUrl?: string;
   lineItems?: {
     description?: string;
     category?: string;
@@ -454,7 +463,6 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
     return {
       id: crypto.randomUUID(),
       groupId: payload.groupId,
-      payerId: payload.payerMemberId || "mock-member",
       amount: payload.amount.toString(),
       currency: payload.currency || "USD",
       date: payload.date || now,
@@ -470,7 +478,6 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
           shareAmount: p.shareAmount?.toString() ?? null,
         })) ?? [],
       participantCosts: {},
-      receiptUrl: payload.receiptUrl,
       lineItems:
         payload.lineItems?.map((item) => ({
           id: crypto.randomUUID(),
@@ -480,6 +487,7 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
           unitAmount: (item.unitAmount ?? item.totalAmount).toString(),
           totalAmount: item.totalAmount.toString(),
         })) ?? [],
+      payments: [],
       createdAt: now,
     };
   }
@@ -497,7 +505,6 @@ export async function updateExpense(payload: UpdateExpensePayload): Promise<Expe
       ...(mockData.group.expenses[0] ?? (await createExpense(payload))),
       ...payload,
       id: payload.id,
-      payerId: payload.payerMemberId ?? null,
       participantCosts: {},
       createdAt: new Date().toISOString(),
     };
@@ -506,6 +513,24 @@ export async function updateExpense(payload: UpdateExpensePayload): Promise<Expe
   const { id, ...body } = payload;
   const response = await request<{ expense: Expense }>(`/expenses/${id}`, "PUT", body);
   return response.expense;
+}
+
+export type PayExpensePayload = {
+  expenseId: string;
+  amount: number;
+  payerMemberId: string;
+  notes?: string;
+  paidAt?: string;
+};
+
+export async function payExpense(payload: PayExpensePayload): Promise<{ expense: Expense }> {
+  const { expenseId, ...body } = payload;
+  const response = await request<{ expense: Expense; payment: ExpensePayment; outstanding: string }>(
+    `/expenses/${expenseId}/payments`,
+    "POST",
+    body,
+  );
+  return { expense: response.expense };
 }
 
 export async function deleteExpense(id: string): Promise<void> {

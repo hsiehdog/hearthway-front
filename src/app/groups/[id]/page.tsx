@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -19,12 +19,15 @@ import { AddMemberForm } from "@/components/groups/add-member-form";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Expense,
   Group,
   deleteExpense,
   fetchExpense,
   fetchGroup,
+  payExpense,
 } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 
@@ -43,6 +46,152 @@ type GroupWithHandlers = Group & {
   _toggleAddExpense?: () => void;
   _toggleUpload?: () => void;
 };
+
+function PaymentsSection({
+  expense,
+  members,
+  onPayment,
+}: {
+  expense: Expense;
+  members: Group["members"];
+  onPayment: () => Promise<void> | void;
+}) {
+  const [amount, setAmount] = useState("");
+  const [payerId, setPayerId] = useState<string>(members[0]?.id ?? "");
+  const [paidAt, setPaidAt] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const mutation = useMutation({
+    mutationFn: async () => {
+      setError(null);
+      if (!payerId) {
+        throw new Error("Select a payer");
+      }
+      if (!amount || Number.isNaN(Number(amount))) {
+        throw new Error("Enter a valid amount");
+      }
+      await payExpense({
+        expenseId: expense.id,
+        amount: Number(amount),
+        payerMemberId: payerId || undefined,
+        notes: notes || undefined,
+        paidAt,
+      });
+    },
+    onSuccess: async () => {
+      setAmount("");
+      setNotes("");
+      await onPayment();
+    },
+    onError: (err: any) => {
+      setError(err?.message ?? "Could not add payment");
+    },
+  });
+
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/10 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Payments</p>
+        <Badge variant="secondary" className="text-xs">
+          {expense.payments?.length ?? 0} recorded
+        </Badge>
+      </div>
+      {expense.payments && expense.payments.length ? (
+        <ul className="space-y-2 text-sm">
+          {expense.payments.map((payment) => {
+            const payerName =
+              members.find((m) => m.id === payment.payerId)?.displayName ??
+              "Unknown";
+            return (
+              <li
+                key={payment.id}
+                className="flex items-center justify-between rounded-md border bg-background px-3 py-2"
+              >
+                <div>
+                  <p className="font-medium text-foreground">
+                    {payerName} ·{" "}
+                    {formatAmount({ ...expense, amount: payment.amount })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {payment.paidAt
+                      ? new Date(payment.paidAt).toLocaleDateString("en-US", {
+                          timeZone: "UTC",
+                        })
+                      : "Unspecified date"}
+                    {payment.notes ? ` · ${payment.notes}` : ""}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">No payments yet.</p>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="paymentAmount">Amount</Label>
+          <Input
+            id="paymentAmount"
+            type="number"
+            min="0"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="paymentPayer">Payer</Label>
+          <select
+            id="paymentPayer"
+            value={payerId}
+            onChange={(e) => setPayerId(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Unassigned</option>
+            {members.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="paymentDate">Paid at</Label>
+          <Input
+            id="paymentDate"
+            type="date"
+            value={paidAt}
+            onChange={(e) => setPaidAt(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="paymentNotes">Notes</Label>
+          <Input
+            id="paymentNotes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Optional"
+          />
+        </div>
+      </div>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          size="sm"
+          disabled={mutation.isPending || !amount}
+          onClick={() => mutation.mutate()}
+        >
+          {mutation.isPending ? "Saving..." : "Add payment"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function GroupCostsCard({ group }: { group: Group }) {
   const summary = useMemo(() => {
@@ -257,15 +406,6 @@ function GroupExpenses({
                 </div>
               </div>
               <Separator className="my-3" />
-              {expense.payerId ? (
-                <div className="text-xs text-muted-foreground">
-                  <p>
-                    Paid by:{" "}
-                    {group.members.find((m) => m.id === expense.payerId)
-                      ?.displayName || "Member"}
-                  </p>
-                </div>
-              ) : null}
               <div className="text-xs text-muted-foreground">
                 {expense.participants.length === 0 ? (
                   <p>No participants listed.</p>
@@ -286,13 +426,11 @@ function GroupExpenses({
                         const name =
                           member?.displayName || participant.memberId;
                         if (expense.splitType === "SHARES") {
-                          const shares =
-                            participant.shareAmount ?? "—";
+                          const shares = participant.shareAmount ?? "—";
                           return `${name} (${shares})`;
                         }
                         if (expense.splitType === "PERCENT") {
-                          const percent =
-                            participant.shareAmount ?? "—";
+                          const percent = participant.shareAmount ?? "—";
                           return `${name} (${percent}%)`;
                         }
                         return name;
@@ -507,6 +645,13 @@ function ExpenseDialogContent({
     }).format(numeric);
   };
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const handlePaymentSaved = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
+    await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+    setShowPaymentModal(false);
+  };
+
   if (isEditing) {
     return (
       <Card className="border-none shadow-none max-h-[80vh] overflow-y-auto">
@@ -517,37 +662,148 @@ function ExpenseDialogContent({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <CreateExpenseForm
-            groupId={groupId}
-            members={members}
-            onSuccess={(savedExpense) => {
-              queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-              queryClient.invalidateQueries({
-                queryKey: ["expense", expense.id],
-              });
-              onExpenseUpdate?.(savedExpense);
-              onClose();
-            }}
-            asCard={false}
-            initialExpense={currentExpense}
-            onDelete={async (id) => {
-              await deleteExpense(id);
-              await queryClient.invalidateQueries({
-                queryKey: ["group", groupId],
-              });
-              onClose();
-            }}
-          />
-          {currentExpense.uploads && currentExpense.uploads.length > 0 ? (
+          <div className="space-y-6">
+            <div className="space-y-6">
+              {currentExpense.uploads && currentExpense.uploads.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Uploads
+                  </p>
+                  <ul className="space-y-2">
+                    {currentExpense.uploads.map((upload) => (
+                      <li
+                        key={upload.id}
+                        className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium text-foreground">
+                          {upload.originalFileName}
+                        </span>
+                        {upload.signedUrl || upload.fileUrl ? (
+                          <a
+                            href={
+                              upload.signedUrl ?? upload.fileUrl ?? undefined
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-medium text-primary underline"
+                          >
+                            View
+                          </a>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <CreateExpenseForm
+                groupId={groupId}
+                members={members}
+                onSuccess={(savedExpense) => {
+                  queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["expense", expense.id],
+                  });
+                  onExpenseUpdate?.(savedExpense);
+                  onClose();
+                }}
+                asCard={false}
+                initialExpense={currentExpense}
+                onDelete={async (id) => {
+                  await deleteExpense(id);
+                  await queryClient.invalidateQueries({
+                    queryKey: ["group", groupId],
+                  });
+                  onClose();
+                }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (showPaymentModal) {
+    return (
+      <AddPaymentContent
+        expense={currentExpense}
+        members={members}
+        onClose={() => setShowPaymentModal(false)}
+        onSaved={handlePaymentSaved}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Card className="border-none shadow-none max-h-[80vh] overflow-y-auto">
+        <CardHeader className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-xl">
+              {currentExpense.name || "Expense"} · {formatAmount(currentExpense)}
+            </CardTitle>
+            <CardDescription>
+              {new Date(currentExpense.date).toLocaleDateString("en-US", {
+                timeZone: "UTC",
+              })}{" "}
+              · Split {currentExpense.splitType.toLowerCase()}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          {currentExpense.description ? (
+            <p className="text-foreground">{currentExpense.description}</p>
+          ) : null}
+          <div className="space-y-1">
+            <p className="font-medium text-foreground">Participants</p>
+            {currentExpense.participants.length ? (
+              <ul className="space-y-1 text-muted-foreground">
+                {currentExpense.participants.map((p) => {
+                  const participantName =
+                    members.find((m) => m.id === p.memberId)?.displayName ||
+                    p.memberId;
+                  const cost = formatParticipantCost(
+                    currentExpense.participantCosts?.[p.memberId]
+                  );
+                  return (
+                    <li key={p.id} className="flex items-center justify-between">
+                      <span className="text-foreground">{participantName}</span>
+                      <span>{cost ?? "—"}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">None</p>
+            )}
+          </div>
+          {currentExpense.lineItems.length ? (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Uploads
-              </p>
-              <ul className="space-y-2">
+              <p className="font-medium text-foreground">Line items</p>
+              <ul className="space-y-1 text-muted-foreground">
+                {currentExpense.lineItems.map((item) => (
+                  <li key={item.id} className="flex justify-between">
+                    <span>{item.description || "Item"}</span>
+                    <span>
+                      {formatAmount({
+                        ...currentExpense,
+                        amount: item.totalAmount,
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {currentExpense.uploads && currentExpense.uploads.length ? (
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">Uploads</p>
+              <ul className="space-y-1">
                 {currentExpense.uploads.map((upload) => (
                   <li
                     key={upload.id}
-                    className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs"
                   >
                     <span className="font-medium text-foreground">
                       {upload.originalFileName}
@@ -557,7 +813,7 @@ function ExpenseDialogContent({
                         href={upload.signedUrl ?? upload.fileUrl ?? undefined}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-medium text-primary underline"
+                        className="text-primary underline"
                       >
                         View
                       </a>
@@ -567,102 +823,139 @@ function ExpenseDialogContent({
               </ul>
             </div>
           ) : null}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowPaymentModal(true)}>
+              Add payment
+            </Button>
+            <Button size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+          </div>
         </CardContent>
       </Card>
-    );
-  }
+
+    </>
+  );
+}
+
+function AddPaymentContent({
+  expense,
+  members,
+  onClose,
+  onSaved,
+}: {
+  expense: Expense;
+  members: Group["members"];
+  onClose: () => void;
+  onSaved: () => Promise<void> | void;
+}) {
+  const totalPaid = (expense.payments ?? []).reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const outstanding = Math.max(Number(expense.amount) - totalPaid, 0);
+  const [amount, setAmount] = useState(outstanding ? outstanding.toFixed(2) : "");
+  const [payerId, setPayerId] = useState<string>(members[0]?.id ?? "");
+  const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      setError(null);
+      if (!payerId) throw new Error("Select a payer");
+      if (!amount || Number.isNaN(Number(amount))) throw new Error("Enter a valid amount");
+      await payExpense({
+        expenseId: expense.id,
+        amount: Number(amount),
+        payerMemberId: payerId,
+        notes: notes || undefined,
+        paidAt,
+        receiptUrl: receiptUrl || undefined,
+      });
+    },
+    onSuccess: async () => {
+      setAmount("");
+      setNotes("");
+      setReceiptUrl("");
+      await onSaved();
+    },
+    onError: (err: any) => {
+      setError(err?.message ?? "Could not add payment");
+    },
+  });
 
   return (
     <Card className="border-none shadow-none max-h-[80vh] overflow-y-auto">
-      <CardHeader className="flex items-start justify-between">
-        <div>
-          <CardTitle className="text-xl">
-            {currentExpense.name || "Expense"} ·{" "}
-            {formatAmount(currentExpense)}
-          </CardTitle>
-          <CardDescription>
-            {new Date(currentExpense.date).toLocaleDateString("en-US", {
-              timeZone: "UTC",
-            })}{" "}
-            · Split {currentExpense.splitType.toLowerCase()}
-          </CardDescription>
-        </div>
-        <Button size="sm" onClick={onEdit}>
-          Edit
-        </Button>
+      <CardHeader>
+        <CardTitle>Add payment</CardTitle>
+        <CardDescription>Record a payment toward this expense.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        {currentExpense.description ? (
-          <p className="text-foreground">{currentExpense.description}</p>
-        ) : null}
-        <div className="space-y-1">
-          <p className="font-medium text-foreground">Participants</p>
-          {currentExpense.participants.length ? (
-            <ul className="space-y-1 text-muted-foreground">
-              {currentExpense.participants.map((p) => {
-                const participantName =
-                  members.find((m) => m.id === p.memberId)?.displayName ||
-                  p.memberId;
-                const cost = formatParticipantCost(
-                  currentExpense.participantCosts?.[p.memberId]
-                );
-                return (
-                  <li key={p.id} className="flex items-center justify-between">
-                    <span className="text-foreground">{participantName}</span>
-                    <span>{cost ?? "—"}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">None</p>
-          )}
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="payment-amount">Amount</Label>
+            <Input
+              id="payment-amount"
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="payment-payer">Payer</Label>
+            <select
+              id="payment-payer"
+              value={payerId}
+              onChange={(e) => setPayerId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Select payer</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="payment-date">Paid at</Label>
+            <Input
+              id="payment-date"
+              type="date"
+              value={paidAt}
+              onChange={(e) => setPaidAt(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="payment-receipt">Receipt URL</Label>
+            <Input
+              id="payment-receipt"
+              value={receiptUrl}
+              onChange={(e) => setReceiptUrl(e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="payment-notes">Notes</Label>
+            <Input
+              id="payment-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
         </div>
-        {currentExpense.lineItems.length ? (
-          <div className="space-y-2">
-            <p className="font-medium text-foreground">Line items</p>
-            <ul className="space-y-1 text-muted-foreground">
-              {currentExpense.lineItems.map((item) => (
-                <li key={item.id} className="flex justify-between">
-                  <span>{item.description || "Item"}</span>
-                  <span>
-                    {formatAmount({
-                      ...currentExpense,
-                      amount: item.totalAmount,
-                    })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {currentExpense.uploads && currentExpense.uploads.length ? (
-          <div className="space-y-2">
-            <p className="font-medium text-foreground">Uploads</p>
-            <ul className="space-y-1">
-              {currentExpense.uploads.map((upload) => (
-                <li
-                  key={upload.id}
-                  className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs"
-                >
-                  <span className="font-medium text-foreground">
-                    {upload.originalFileName}
-                  </span>
-                  {upload.signedUrl || upload.fileUrl ? (
-                    <a
-                      href={upload.signedUrl ?? upload.fileUrl ?? undefined}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary underline"
-                    >
-                      View
-                    </a>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+            {mutation.isPending ? "Saving..." : "Add payment"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
