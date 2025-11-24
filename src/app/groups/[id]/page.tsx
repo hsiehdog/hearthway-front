@@ -86,61 +86,51 @@ function GroupCostsCard({ group }: { group: Group }) {
 
   return (
     <Card className="border-muted bg-background">
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
           <CardTitle>Costs</CardTitle>
-          <CardDescription>Totals for this project/trip.</CardDescription>
+          <p className="text-2xl font-semibold text-foreground">
+            {formatCurrency(summary.total)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Based on {group.expenses.length} expense
+            {group.expenses.length === 1 ? "" : "s"}.
+          </p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          Total {formatCurrency(summary.total)}
-        </Badge>
+        {summary.entries.length ? (
+          <div className="w-full rounded-md border bg-muted/20 px-3 py-2 sm:w-72 sm:self-end">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Cost per participant
+            </p>
+            <ul className="mt-1 space-y-1">
+              {summary.entries
+                .sort((a, b) => b.amount - a.amount)
+                .map(({ memberId, amount }) => {
+                  const name =
+                    group.members.find((m) => m.id === memberId)?.displayName ??
+                    memberId;
+                  return (
+                    <li
+                      key={memberId}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span className="text-foreground">{name}</span>
+                      <span className="font-medium">
+                        {formatCurrency(amount)}
+                      </span>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
+        ) : null}
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2">
         {summary.entries.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No participant costs yet.
           </p>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Total cost
-              </p>
-              <p className="text-2xl font-semibold text-foreground">
-                {formatCurrency(summary.total)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Based on {group.expenses.length} expense
-                {group.expenses.length === 1 ? "" : "s"}.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Cost per participant
-              </p>
-              <ul className="space-y-2">
-                {summary.entries
-                  .sort((a, b) => b.amount - a.amount)
-                  .map(({ memberId, amount }) => {
-                    const name =
-                      group.members.find((m) => m.id === memberId)
-                        ?.displayName ?? memberId;
-                    return (
-                      <li
-                        key={memberId}
-                        className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
-                      >
-                        <span className="text-foreground">{name}</span>
-                        <span className="font-medium">
-                          {formatCurrency(amount)}
-                        </span>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </div>
-          </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
