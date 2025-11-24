@@ -230,11 +230,11 @@ function GroupExpenses({
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-foreground">
-                    {expense.category || "Expense"}
+                    {expense.name || "Expense"}
                   </p>
-                  {expense.note ? (
+                  {expense.description ? (
                     <p className="text-xs text-muted-foreground">
-                      {expense.note}
+                      {expense.description}
                     </p>
                   ) : null}
                 </div>
@@ -287,16 +287,12 @@ function GroupExpenses({
                           member?.displayName || participant.memberId;
                         if (expense.splitType === "SHARES") {
                           const shares =
-                            expense.shareMap?.[participant.memberId] ??
-                            participant.shareAmount ??
-                            "—";
+                            participant.shareAmount ?? "—";
                           return `${name} (${shares})`;
                         }
                         if (expense.splitType === "PERCENT") {
                           const percent =
-                            expense.percentMap?.[participant.memberId] ??
-                            participant.shareAmount ??
-                            "—";
+                            participant.shareAmount ?? "—";
                           return `${name} (${percent}%)`;
                         }
                         return name;
@@ -581,12 +577,14 @@ function ExpenseDialogContent({
       <CardHeader className="flex items-start justify-between">
         <div>
           <CardTitle className="text-xl">
-            {currentExpense.category || "Expense"} ·{" "}
+            {currentExpense.name || "Expense"} ·{" "}
             {formatAmount(currentExpense)}
           </CardTitle>
           <CardDescription>
-            {new Date(currentExpense.date).toLocaleDateString()} · Split{" "}
-            {currentExpense.splitType.toLowerCase()}
+            {new Date(currentExpense.date).toLocaleDateString("en-US", {
+              timeZone: "UTC",
+            })}{" "}
+            · Split {currentExpense.splitType.toLowerCase()}
           </CardDescription>
         </div>
         <Button size="sm" onClick={onEdit}>
@@ -594,8 +592,8 @@ function ExpenseDialogContent({
         </Button>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {currentExpense.note ? (
-          <p className="text-foreground">{currentExpense.note}</p>
+        {currentExpense.description ? (
+          <p className="text-foreground">{currentExpense.description}</p>
         ) : null}
         <div className="space-y-1">
           <p className="font-medium text-foreground">Participants</p>

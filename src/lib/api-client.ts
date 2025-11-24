@@ -82,13 +82,11 @@ export type Expense = {
   amount: string;
   currency: string;
   date: string;
-  category?: string | null;
-  note?: string | null;
+  name: string;
+  description?: string | null;
   splitType: "EVEN" | "PERCENT" | "SHARES";
   participants: ExpenseParticipant[];
   participantCosts?: Record<string, string>;
-  percentMap?: Record<string, number> | null;
-  shareMap?: Record<string, number> | null;
   receiptUrl?: string | null;
   lineItems: ExpenseLineItem[];
   uploads?: UploadedExpense[];
@@ -233,16 +231,14 @@ const mockData = {
         amount: "120.50",
         currency: "USD",
         date: new Date().toISOString(),
-        category: "Dinner",
-        note: "Tapas night",
+        name: "Tapas night",
+        description: "Tapas night",
         splitType: "EVEN",
         participantCosts: { m1: "60.25", m2: "60.25" },
         participants: [
           { id: "ep1", expenseId: "e1", memberId: "m1", shareAmount: "60.25" },
           { id: "ep2", expenseId: "e1", memberId: "m2", shareAmount: "60.25" },
         ],
-        percentMap: null,
-        shareMap: null,
         receiptUrl: null,
         lineItems: [
           {
@@ -437,12 +433,10 @@ export type CreateExpensePayload = {
   amount: number;
   currency?: string;
   date?: string;
-  category?: string;
-  note?: string;
+  name: string;
+  description?: string;
   splitType: Expense["splitType"];
   participants?: { memberId: string; shareAmount?: number }[];
-  percentMap?: Record<string, number>;
-  shareMap?: Record<string, number>;
   receiptUrl?: string;
   lineItems?: {
     description?: string;
@@ -464,8 +458,8 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
       amount: payload.amount.toString(),
       currency: payload.currency || "USD",
       date: payload.date || now,
-      category: payload.category,
-      note: payload.note,
+      name: payload.name,
+      description: payload.description,
       splitType: payload.splitType,
       status: payload.status,
       participants:
@@ -476,8 +470,6 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
           shareAmount: p.shareAmount?.toString() ?? null,
         })) ?? [],
       participantCosts: {},
-      percentMap: payload.percentMap || null,
-      shareMap: payload.shareMap || null,
       receiptUrl: payload.receiptUrl,
       lineItems:
         payload.lineItems?.map((item) => ({

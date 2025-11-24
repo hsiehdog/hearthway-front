@@ -39,13 +39,13 @@ export function CreateExpenseForm({
 }: Props) {
   const resolveInitialPayer = () => (initialExpense ? initialExpense.payerId ?? "pending" : members[0]?.id ?? "pending");
   const queryClient = useQueryClient();
+  const [name, setName] = useState(initialExpense?.name ?? "");
   const [amount, setAmount] = useState(initialExpense?.amount ?? "");
   const [currency, setCurrency] = useState(initialExpense?.currency ?? "USD");
   const [date, setDate] = useState(
     () => initialExpense?.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
   );
-  const [category, setCategory] = useState(initialExpense?.category ?? "");
-  const [note, setNote] = useState(initialExpense?.note ?? "");
+  const [description, setDescription] = useState(initialExpense?.description ?? "");
   const [splitType, setSplitType] = useState<"EVEN" | "PERCENT" | "SHARES">(
     initialExpense?.splitType ?? "EVEN",
   );
@@ -91,8 +91,8 @@ export function CreateExpenseForm({
         amount: Number(amount),
         currency,
         date,
-        category: category || undefined,
-        note: note || undefined,
+        name,
+        description: description || undefined,
         splitType,
         participants: Object.entries(participants)
           .filter(([, value]) => value.checked)
@@ -124,8 +124,7 @@ export function CreateExpenseForm({
       await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
       if (!initialExpense) {
         setAmount("");
-        setCategory("");
-        setNote("");
+        setDescription("");
         setLineItems([]);
       }
       onSuccess?.(savedExpense);
@@ -137,7 +136,7 @@ export function CreateExpenseForm({
     [participants],
   );
   const [participantError, setParticipantError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; note?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; name?: string }>({});
 
   const percentError = useMemo(() => {
     if (splitType !== "PERCENT") return "";
@@ -157,16 +156,16 @@ export function CreateExpenseForm({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const nextFieldErrors: { amount?: string; note?: string } = {};
+    const nextFieldErrors: { amount?: string; name?: string } = {};
+    if (!name.trim()) {
+      nextFieldErrors.name = "Name is required";
+    }
     if (!amount || Number.isNaN(Number(amount))) {
       nextFieldErrors.amount = "Amount is required";
     }
-    if (!note.trim()) {
-      nextFieldErrors.note = "Note is required";
-    }
     setFieldErrors(nextFieldErrors);
 
-    if (nextFieldErrors.amount || nextFieldErrors.note) return;
+    if (nextFieldErrors.amount || nextFieldErrors.name) return;
     if (selectedCount === 0) {
       setParticipantError("Select at least one participant.");
       return;
@@ -241,8 +240,8 @@ export function CreateExpenseForm({
     setAmount(initialExpense.amount ?? "");
     setCurrency(initialExpense.currency ?? "USD");
     setDate(initialExpense.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
-    setCategory(initialExpense.category ?? "");
-    setNote(initialExpense.note ?? "");
+    setName(initialExpense.name ?? "");
+    setDescription(initialExpense.description ?? "");
     setSplitType(initialExpense.splitType ?? "EVEN");
     setPayerId(initialExpense.payerId ?? "pending");
     setParticipants(() => {
@@ -277,6 +276,17 @@ export function CreateExpenseForm({
   const form = (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr] md:items-end">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="e.g., Dinner, Supplies"
+            required
+          />
+          {fieldErrors.name ? <p className="text-xs text-destructive">{fieldErrors.name}</p> : null}
+        </div>
         <div className="space-y-2">
           <Label htmlFor="amount">Amount</Label>
           <div className="relative">
@@ -330,12 +340,12 @@ export function CreateExpenseForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
+          <Label htmlFor="description">Description</Label>
           <Input
-            id="category"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            placeholder="e.g., Dinner, Supplies"
+            id="description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Add context about this expense"
           />
         </div>
         <div className="space-y-2">
@@ -355,17 +365,7 @@ export function CreateExpenseForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="note">Note</Label>
-        <Input
-          id="note"
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Add context about this expense"
-          required
-        />
-        {fieldErrors.note ? <p className="text-xs text-destructive">{fieldErrors.note}</p> : null}
-      </div>
+      {fieldErrors.description ? <p className="text-xs text-destructive">{fieldErrors.description}</p> : null}
 
       <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
         <div className="flex items-center justify-between">
