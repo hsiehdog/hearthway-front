@@ -97,8 +97,6 @@ export function AppHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Signed in</DropdownMenuLabel>
-              <DropdownMenuSeparator />
               <DropdownMenuItem disabled>Account settings (soon)</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
