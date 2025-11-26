@@ -578,6 +578,9 @@ export default function GroupDetailPage() {
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/groups/${data.id}/uploads`}>Open uploads</Link>
                     </Button>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link href={`/groups/${data.id}/expenses`}>Table view</Link>
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
