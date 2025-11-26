@@ -562,12 +562,8 @@ export default function GroupDetailPage() {
                 }}
                 actionsSlot={
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={data._toggleAddExpense}
-                    >
-                      + Add
+                    <Button size="sm" variant="outline" onClick={data._toggleAddExpense}>
+                      Add
                     </Button>
                     <Button
                       size="sm"
@@ -577,7 +573,7 @@ export default function GroupDetailPage() {
                       Upload
                     </Button>
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/groups/${data.id}/uploads`}>Batch uploads</Link>
+                      <Link href={`/groups/${data.id}/uploads`}>Batch upload</Link>
                     </Button>
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/groups/${data.id}/expenses`}>View all</Link>
