@@ -122,19 +122,7 @@ export default function ExpenseDetailPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
-                {expense.uploads && expense.uploads.length ? (
-                  <div className="text-sm text-muted-foreground">
-                    <a
-                      href={expense.uploads[0].signedUrl ?? expense.uploads[0].fileUrl ?? undefined}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary underline"
-                    >
-                      View upload
-                    </a>
-                  </div>
-                ) : null}
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <p className="font-medium text-foreground">
                     Cost per participant ·{" "}
                     {expense.splitType === "SHARES"
@@ -144,22 +132,34 @@ export default function ExpenseDetailPage() {
                         : "Split evenly"}
                   </p>
                   {expense.participants.length ? (
-                    <ul className="space-y-1 text-muted-foreground">
-                      {expense.participants.map((p) => (
-                        <li key={p.id} className="flex items-center justify-between">
-                          <span className="text-foreground">
-                            {memberName(p.memberId)}
-                            {expense.splitType === "SHARES" && p.shareAmount ? ` (${p.shareAmount})` : ""}
-                          </span>
-                          <span>
-                            {formatCurrency(
-                              Number(expense.participantCosts?.[p.memberId] ?? p.shareAmount ?? 0),
-                              expense.currency,
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="overflow-hidden rounded-md border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Participant</th>
+                            <th className="px-3 py-2 text-right">Cost</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expense.participants.map((p) => (
+                            <tr key={p.id} className="border-t">
+                              <td className="px-3 py-2">
+                                <span className="text-foreground">
+                                  {memberName(p.memberId)}
+                                  {expense.splitType === "SHARES" && p.shareAmount ? ` (${p.shareAmount})` : ""}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {formatCurrency(
+                                  Number(expense.participantCosts?.[p.memberId] ?? p.shareAmount ?? 0),
+                                  expense.currency,
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   ) : (
                     <p className="text-muted-foreground">None</p>
                   )}
@@ -167,14 +167,26 @@ export default function ExpenseDetailPage() {
                 {expense.lineItems.length ? (
                   <div className="space-y-2">
                     <p className="font-medium text-foreground">Line items</p>
-                    <ul className="space-y-1 text-muted-foreground">
-                      {expense.lineItems.map((item) => (
-                        <li key={item.id} className="flex justify-between">
-                          <span>{item.description || "Item"}</span>
-                          <span>{formatCurrency(Number(item.totalAmount), expense.currency)}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="overflow-hidden rounded-md border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Description</th>
+                            <th className="px-3 py-2 text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expense.lineItems.map((item) => (
+                            <tr key={item.id} className="border-t">
+                              <td className="px-3 py-2">{item.description || "Item"}</td>
+                              <td className="px-3 py-2 text-right">
+                                {formatCurrency(Number(item.totalAmount), expense.currency)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between pt-2">
