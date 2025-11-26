@@ -586,6 +586,37 @@ export async function uploadExpenseFile(groupId: string, file: File): Promise<Ex
   return fetchExpense(data.expenseId);
 }
 
+export async function uploadExpenseBatch(groupId: string, files: File[]): Promise<{
+  uploads: UploadedExpense[];
+  expenseIds: string[];
+}> {
+  if (isMock) {
+    await delay(200);
+    const expenseIds = files.map(() => crypto.randomUUID());
+    return { uploads: [], expenseIds };
+  }
+
+  if (!API_BASE_URL) {
+    throw new Error("API base URL is not configured.");
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/expense-uploads/batch`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to upload expenses");
+  }
+
+  return (await response.json()) as { uploads: UploadedExpense[]; expenseIds: string[] };
+}
+
 function mapToChatMessage(
   payload: AIChatResponse,
   fallbackRole: ChatMessage["role"] = "assistant",

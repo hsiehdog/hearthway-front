@@ -260,7 +260,7 @@ export function CreateExpenseForm({
         totalAmount: item.totalAmount ?? "",
       })),
     );
-  }, [initialExpense?.id, members]);
+  }, [initialExpense, members]);
 
   const toNumber = (value: string | number | undefined, fallback: number): number => {
     if (value === "" || value === undefined) return fallback;

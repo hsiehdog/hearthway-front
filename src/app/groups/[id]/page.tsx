@@ -21,6 +21,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import {
   Expense,
   Group,
@@ -572,7 +573,12 @@ export default function GroupDetailPage() {
                       Updated {new Date(data.updatedAt).toLocaleDateString()}
                     </CardDescription>
                   </div>
-                  <Badge variant="secondary">{data.type}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{data.type}</Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/groups/${data.id}/uploads`}>Open uploads</Link>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
             </Card>
