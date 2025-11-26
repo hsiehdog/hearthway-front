@@ -10,7 +10,10 @@ import { AppShell } from "@/components/layout/app-shell";
 import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Expense, Group, fetchGroup } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { Expense, Group, deleteExpense, fetchGroup } from "@/lib/api-client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type ExpenseRow = {
@@ -101,6 +104,7 @@ const columns: ColumnDef<ExpenseRow>[] = [
 export default function GroupExpensesTablePage() {
   const params = useParams<{ id: string }>();
   const groupId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const router = useRouter();
   const [participantFilter, setParticipantFilter] = useState<string>("all");
 
   const { data, isPending, error } = useQuery<Group>({
@@ -166,6 +170,32 @@ export default function GroupExpensesTablePage() {
     }),
     [rows],
   );
+  const actionColumn: ColumnDef<ExpenseRow> = {
+    header: "Actions",
+    id: "actions",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" asChild>
+          <a href={`/groups/${groupId}/expenses/${row.original.id}`}>View</a>
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive"
+          onClick={async () => {
+            const confirmed = window.confirm("Delete this expense? This cannot be undone.");
+            if (confirmed) {
+              await deleteExpense(row.original.id);
+              router.refresh();
+            }
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
+  };
+  const tableColumns = [...columns, actionColumn];
 
   return (
     <ProtectedRoute>
@@ -208,7 +238,7 @@ export default function GroupExpensesTablePage() {
                   ))}
                 </select>
               </div>
-              <DataTable columns={columns} data={rows} footerRenderers={footerRenderers} />
+              <DataTable columns={tableColumns} data={rows} footerRenderers={footerRenderers} />
             </CardContent>
           </Card>
         ) : null}
