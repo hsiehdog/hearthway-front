@@ -1,4 +1,4 @@
-type HttpMethod = "GET" | "POST";
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export type UsageMetric = {
   id: string;
@@ -532,6 +532,36 @@ export async function payExpense(payload: PayExpensePayload): Promise<{ expense:
     body,
   );
   return { expense: response.expense };
+}
+
+export type UpdateExpensePaymentPayload = PayExpensePayload & { paymentId: string };
+
+export async function updateExpensePayment(payload: UpdateExpensePaymentPayload): Promise<{ expense: Expense }> {
+  const { expenseId, paymentId, ...body } = payload;
+  const response = await request<{ expense: Expense }>(
+    `/expenses/${expenseId}/payments/${paymentId}`,
+    "PUT",
+    body,
+  );
+  return response;
+}
+
+export async function deleteExpensePayment(expenseId: string, paymentId: string): Promise<{ expense: Expense }> {
+  if (isMock) {
+    await delay(100);
+    const expense = mockData.group.expenses.find((e) => e.id === expenseId);
+    if (!expense) {
+      throw new Error("Expense not found");
+    }
+    expense.payments = (expense.payments ?? []).filter((p) => p.id !== paymentId);
+    return { expense: expense as Expense };
+  }
+
+  const response = await request<{ expense: Expense }>(
+    `/expenses/${expenseId}/payments/${paymentId}`,
+    "DELETE",
+  );
+  return response;
 }
 
 export async function deleteExpense(id: string): Promise<void> {
