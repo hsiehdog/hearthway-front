@@ -19,6 +19,7 @@ import {
   payExpense,
   updateExpensePayment,
 } from "@/lib/api-client";
+import { CreateExpenseForm } from "@/components/groups/create-expense-form";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ export default function ExpenseDetailPage() {
   );
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showEditExpense, setShowEditExpense] = useState(false);
   const [paymentToEdit, setPaymentToEdit] = useState<ExpensePayment | null>(null);
   const deletePayment = useMutation({
     mutationFn: (paymentId: string) => deleteExpensePayment(expenseId, paymentId),
@@ -86,12 +88,12 @@ export default function ExpenseDetailPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-            <Card>
-              <CardHeader className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-2xl font-semibold">
-                    {expense.name || "Expense"}
-                  </CardTitle>
+          <Card>
+            <CardHeader className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-2xl font-semibold">
+                  {expense.name || "Expense"}
+                </CardTitle>
                   {expense.description ? (
                     <CardDescription>{expense.description}</CardDescription>
                   ) : null}
@@ -120,6 +122,18 @@ export default function ExpenseDetailPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
+                {expense.uploads && expense.uploads.length ? (
+                  <div className="text-sm text-muted-foreground">
+                    <a
+                      href={expense.uploads[0].signedUrl ?? expense.uploads[0].fileUrl ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline"
+                    >
+                      View upload
+                    </a>
+                  </div>
+                ) : null}
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">
                     Cost per participant ·{" "}
@@ -163,6 +177,32 @@ export default function ExpenseDetailPage() {
                     </ul>
                   </div>
                 ) : null}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="text-sm text-muted-foreground">
+                    {expense.uploads && expense.uploads.length ? (
+                      <a
+                        href={expense.uploads[0].signedUrl ?? expense.uploads[0].fileUrl ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline"
+                      >
+                        View upload
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPaymentModal(true)}
+                    >
+                      Add payment
+                    </Button>
+                    <Button size="sm" onClick={() => setShowEditExpense(true)}>
+                      Edit
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -293,6 +333,28 @@ export default function ExpenseDetailPage() {
                       setPaymentToEdit(null);
                     }}
                     submitLabel={paymentToEdit ? "Update payment" : "Add payment"}
+                  />
+                </CardContent>
+              </Card>
+            </Dialog>
+
+            <Dialog open={showEditExpense} onClose={() => setShowEditExpense(false)}>
+              <Card className="border-none shadow-lg">
+                <CardHeader>
+                  <CardTitle>Edit expense</CardTitle>
+                  <CardDescription>Update details for this expense.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CreateExpenseForm
+                    groupId={groupId}
+                    members={group?.members ?? []}
+                    initialExpense={expense}
+                    asCard={false}
+                    onSuccess={async () => {
+                      await queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
+                      await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                      setShowEditExpense(false);
+                    }}
                   />
                 </CardContent>
               </Card>
