@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
@@ -37,6 +37,7 @@ export default function UploadExpensesPage() {
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [entries, setEntries] = useState<UploadEntry[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -75,6 +76,31 @@ export default function UploadExpensesPage() {
       );
     },
   });
+
+  const addFiles = (files: FileList | File[]) => {
+    const next = Array.from(files);
+    setSelectedFiles((prev) => [...prev, ...next]);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer.files?.length) {
+      addFiles(event.dataTransfer.files);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleFilePick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files?.length) {
+      addFiles(event.target.files);
+      event.target.value = "";
+    }
+  };
 
   const pollExpense = async (expenseId: string, entryIndex: number, attempt = 0) => {
     try {
@@ -144,35 +170,64 @@ export default function UploadExpensesPage() {
               <CardDescription>Drag in receipts or documents.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="files">Receipts</Label>
-                <Input
-                  id="files"
-                  type="file"
-                  multiple
-                  onChange={(e) => setSelectedFiles(Array.from(e.target.files ?? []))}
-                />
-                {selectedFiles.length ? (
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {selectedFiles.map((file) => (
-                      <li key={file.name} className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2">
-                        <span className="text-foreground">{file.name}</span>
-                        <span className="text-xs">
-                          {file.type || "Unknown type"} · {Math.round(file.size / 1024)} KB
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => mutation.mutate()}
-                  disabled={mutation.isPending || !groupId || selectedFiles.length === 0}
-                >
-                  {mutation.isPending ? "Uploading..." : "Upload files"}
-                </Button>
-              </div>
+              {entries.length === 0 ? (
+                <div className="space-y-2">
+                  <Label>Receipts</Label>
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/50 bg-muted/30 px-6 py-10 text-center transition hover:border-primary/60 hover:bg-muted/50"
+                    onClick={() => fileInputRef.current?.click()}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    <p className="text-sm font-medium text-foreground">Drag and drop files here</p>
+                    <p className="text-xs text-muted-foreground">PDFs or images · up to 10MB each</p>
+                    <Button variant="outline" size="sm" className="mt-3">
+                      Choose files
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      id="files"
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFilePick}
+                    />
+                  </div>
+                  {selectedFiles.length ? (
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      {selectedFiles.map((file, idx) => (
+                        <li
+                          key={`${file.name}-${idx}`}
+                          className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2"
+                        >
+                          <span className="text-foreground">{file.name}</span>
+                          <span className="text-xs">
+                            {file.type || "Unknown type"} · {Math.round(file.size / 1024)} KB
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+              {entries.length === 0 ? (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => mutation.mutate()}
+                    disabled={mutation.isPending || !groupId || selectedFiles.length === 0}
+                  >
+                    {mutation.isPending ? "Uploading..." : "Upload files"}
+                  </Button>
+                </div>
+              ) : null}
 
               {entries.length ? (
                 <div className="space-y-3">
