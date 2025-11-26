@@ -46,6 +46,7 @@ type GroupWithHandlers = Group & {
   _toggleAddMember?: () => void;
   _toggleAddExpense?: () => void;
   _toggleUpload?: () => void;
+  _actionsSlot?: React.ReactNode;
 };
 
 function PaymentsSection({
@@ -236,7 +237,7 @@ function GroupCostsCard({ group }: { group: Group }) {
 
   return (
     <Card className="border-muted bg-background">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <CardHeader className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Costs</CardTitle>
           <p className="text-2xl font-semibold text-foreground">
@@ -248,7 +249,7 @@ function GroupCostsCard({ group }: { group: Group }) {
           </p>
         </div>
         {summary.entries.length ? (
-          <div className="w-full rounded-md border bg-muted/20 px-3 py-3 sm:w-[22rem] sm:ml-auto sm:self-end">
+          <div className="w-full rounded-md border bg-muted/20 px-4 py-3 sm:w-[22rem] sm:ml-auto sm:self-end">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Cost per participant
             </p>
@@ -289,18 +290,27 @@ function GroupCostsCard({ group }: { group: Group }) {
 function PaymentsCard({ group }: { group: Group }) {
   const summary = useMemo(() => {
     const currency = group.expenses[0]?.currency || "USD";
-    const paidByMember = group.expenses.reduce<Record<string, number>>((acc, expense) => {
-      (expense.payments ?? []).forEach((payment) => {
-        const amount = Number(payment.amount);
-        if (Number.isNaN(amount)) return;
-        acc[payment.payerId] = (acc[payment.payerId] ?? 0) + amount;
-      });
-      return acc;
-    }, {});
+    const paidByMember = group.expenses.reduce<Record<string, number>>(
+      (acc, expense) => {
+        (expense.payments ?? []).forEach((payment) => {
+          const amount = Number(payment.amount);
+          if (Number.isNaN(amount)) return;
+          acc[payment.payerId] = (acc[payment.payerId] ?? 0) + amount;
+        });
+        return acc;
+      },
+      {}
+    );
 
-    const paidTotal = Object.values(paidByMember).reduce((sum, val) => sum + val, 0);
+    const paidTotal = Object.values(paidByMember).reduce(
+      (sum, val) => sum + val,
+      0
+    );
     const unpaidTotal = group.expenses.reduce((sum, expense) => {
-      const paid = (expense.payments ?? []).reduce((sub, payment) => sub + Number(payment.amount || 0), 0);
+      const paid = (expense.payments ?? []).reduce(
+        (sub, payment) => sub + Number(payment.amount || 0),
+        0
+      );
       const remaining = Number(expense.amount) - paid;
       return sum + (Number.isNaN(remaining) ? 0 : Math.max(remaining, 0));
     }, 0);
@@ -322,26 +332,37 @@ function PaymentsCard({ group }: { group: Group }) {
 
   return (
     <Card className="border-muted bg-background">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <CardHeader className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Payments</CardTitle>
-          <p className="text-2xl font-semibold text-foreground">{formatCurrency(summary.paidTotal)}</p>
+          <p className="text-2xl font-semibold text-foreground">
+            {formatCurrency(summary.paidTotal)}
+          </p>
           <p className="text-xs text-muted-foreground">
-            Unpaid total {formatCurrency(summary.unpaidTotal)}
+            Unpaid total: {formatCurrency(summary.unpaidTotal)}
           </p>
         </div>
         {summary.entries.length ? (
           <div className="w-full rounded-md border bg-muted/20 px-3 py-3 sm:w-[22rem] sm:ml-auto sm:self-end">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Paid per participant</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Paid per participant
+            </p>
             <ul className="mt-2 space-y-1">
               {summary.entries
                 .sort((a, b) => b.amount - a.amount)
                 .map(({ memberId, amount }) => {
-                  const name = group.members.find((m) => m.id === memberId)?.displayName ?? memberId;
+                  const name =
+                    group.members.find((m) => m.id === memberId)?.displayName ??
+                    memberId;
                   return (
-                    <li key={memberId} className="flex items-center justify-between text-sm">
+                    <li
+                      key={memberId}
+                      className="flex items-center justify-between text-sm"
+                    >
                       <span className="text-foreground">{name}</span>
-                      <span className="font-medium">{formatCurrency(amount)}</span>
+                      <span className="font-medium">
+                        {formatCurrency(amount)}
+                      </span>
                     </li>
                   );
                 })}
@@ -351,10 +372,10 @@ function PaymentsCard({ group }: { group: Group }) {
       </CardHeader>
       <CardContent className="pt-3">
         {summary.entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
-        ) : (
-          null
-        )}
+          <p className="text-sm text-muted-foreground">
+            No payments recorded yet.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -402,14 +423,16 @@ function GroupMembers({ group }: { group: GroupWithHandlers }) {
 function GroupExpenses({
   group,
   onSelectExpense,
+  actionsSlot,
 }: {
   group: GroupWithHandlers;
   onSelectExpense: (expense: Expense) => void;
+  actionsSlot?: React.ReactNode;
 }) {
   const sortedExpenses = useMemo(
     () =>
       [...group.expenses].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
       ),
     [group.expenses]
   );
@@ -419,26 +442,8 @@ function GroupExpenses({
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle>Expenses</CardTitle>
-          <CardDescription>
-            Click an expense to edit, adjust splits, or upload a receipt.
-          </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={group._toggleAddExpense}
-          >
-            + Add
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => group._toggleUpload?.()}
-          >
-            Upload
-          </Button>
-        </div>
+        {actionsSlot ?? null}
       </CardHeader>
       <CardContent className="space-y-4">
         {sortedExpenses.length === 0 ? (
@@ -451,68 +456,25 @@ function GroupExpenses({
               onClick={() => onSelectExpense(expense)}
               className="w-full rounded-lg border bg-muted/20 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    {expense.name || "Expense"}
-                  </p>
-                  {expense.description ? (
-                    <p className="text-xs text-muted-foreground">
-                      {expense.description}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="text-right space-y-1">
-                  <p className="text-base font-semibold text-foreground">
-                    {formatAmount(expense)}
-                  </p>
-                  <Badge
-                    variant={
-                      expense.status === "PAID"
-                        ? "default"
-                        : expense.status === "REIMBURSED"
-                        ? "secondary"
-                        : "outline"
-                    }
-                    className="text-[11px] font-medium"
-                  >
-                    {expense.status?.toLowerCase() ?? "pending"}
-                  </Badge>
-                </div>
-              </div>
-              <Separator className="my-3" />
-              <div className="text-xs text-muted-foreground">
-                {expense.participants.length === 0 ? (
-                  <p>No participants listed.</p>
-                ) : (
-                  <p>
-                    {expense.splitType === "EVEN"
-                      ? "Split evenly: "
-                      : expense.splitType === "SHARES"
-                      ? "Split shares: "
-                      : expense.splitType === "PERCENT"
-                      ? "Split percentage: "
-                      : "Split among: "}
-                    {expense.participants
-                      .map((participant) => {
-                        const member = group.members.find(
-                          (m) => m.id === participant.memberId
-                        );
-                        const name =
-                          member?.displayName || participant.memberId;
-                        if (expense.splitType === "SHARES") {
-                          const shares = participant.shareAmount ?? "—";
-                          return `${name} (${shares})`;
-                        }
-                        if (expense.splitType === "PERCENT") {
-                          const percent = participant.shareAmount ?? "—";
-                          return `${name} (${percent}%)`;
-                        }
-                        return name;
-                      })
-                      .join(", ")}
-                  </p>
-                )}
+              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                <p className="text-sm font-semibold text-foreground">
+                  {expense.name || "Expense"}
+                </p>
+                <Badge
+                  variant={
+                    expense.status === "PAID"
+                      ? "default"
+                      : expense.status === "REIMBURSED"
+                      ? "secondary"
+                      : "outline"
+                  }
+                  className="text-[11px] font-medium"
+                >
+                  {expense.status?.toLowerCase() ?? "pending"}
+                </Badge>
+                <p className="text-base font-semibold text-foreground tabular-nums w-24 text-right">
+                  {formatAmount(expense)}
+                </p>
               </div>
             </button>
           ))
@@ -575,12 +537,6 @@ export default function GroupDetailPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{data.type}</Badge>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/groups/${data.id}/uploads`}>Open uploads</Link>
-                    </Button>
-                    <Button asChild size="sm" variant="ghost">
-                      <Link href={`/groups/${data.id}/expenses`}>Table view</Link>
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
@@ -604,6 +560,30 @@ export default function GroupDetailPage() {
                   _toggleAddExpense: () => setShowAddExpense(true),
                   _toggleUpload: () => setShowUploadOnly(true),
                 }}
+                actionsSlot={
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={data._toggleAddExpense}
+                    >
+                      + Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => data._toggleUpload?.()}
+                    >
+                      Upload
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/groups/${data.id}/uploads`}>Batch uploads</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/groups/${data.id}/expenses`}>View all</Link>
+                    </Button>
+                  </div>
+                }
                 onSelectExpense={(expense) => {
                   setSelectedExpense(expense);
                   setIsEditingExpense(false);
@@ -786,7 +766,9 @@ function ExpenseDialogContent({
                 groupId={groupId}
                 members={members}
                 onSuccess={(savedExpense) => {
-                  queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["group", groupId],
+                  });
                   queryClient.invalidateQueries({
                     queryKey: ["expense", expense.id],
                   });
@@ -827,7 +809,8 @@ function ExpenseDialogContent({
         <CardHeader className="flex items-start justify-between">
           <div>
             <CardTitle className="text-xl">
-              {currentExpense.name || "Expense"} · {formatAmount(currentExpense)}
+              {currentExpense.name || "Expense"} ·{" "}
+              {formatAmount(currentExpense)}
             </CardTitle>
             <CardDescription>
               {new Date(currentExpense.date).toLocaleDateString("en-US", {
@@ -853,7 +836,10 @@ function ExpenseDialogContent({
                     currentExpense.participantCosts?.[p.memberId]
                   );
                   return (
-                    <li key={p.id} className="flex items-center justify-between">
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between"
+                    >
                       <span className="text-foreground">{participantName}</span>
                       <span>{cost ?? "—"}</span>
                     </li>
@@ -911,7 +897,11 @@ function ExpenseDialogContent({
           ) : null}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => setShowPaymentModal(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPaymentModal(true)}
+            >
               Add payment
             </Button>
             <Button size="sm" onClick={onEdit}>
@@ -920,7 +910,6 @@ function ExpenseDialogContent({
           </div>
         </CardContent>
       </Card>
-
     </>
   );
 }
@@ -936,11 +925,18 @@ function AddPaymentContent({
   onClose: () => void;
   onSaved: () => Promise<void> | void;
 }) {
-  const totalPaid = (expense.payments ?? []).reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const totalPaid = (expense.payments ?? []).reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0
+  );
   const outstanding = Math.max(Number(expense.amount) - totalPaid, 0);
-  const [amount, setAmount] = useState(outstanding ? outstanding.toFixed(2) : "");
+  const [amount, setAmount] = useState(
+    outstanding ? outstanding.toFixed(2) : ""
+  );
   const [payerId, setPayerId] = useState<string>(members[0]?.id ?? "");
-  const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paidAt, setPaidAt] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
   const [notes, setNotes] = useState("");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -949,7 +945,8 @@ function AddPaymentContent({
     mutationFn: async () => {
       setError(null);
       if (!payerId) throw new Error("Select a payer");
-      if (!amount || Number.isNaN(Number(amount))) throw new Error("Enter a valid amount");
+      if (!amount || Number.isNaN(Number(amount)))
+        throw new Error("Enter a valid amount");
       await payExpense({
         expenseId: expense.id,
         amount: Number(amount),
@@ -1038,7 +1035,11 @@ function AddPaymentContent({
           <Button variant="ghost" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            type="button"
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
             {mutation.isPending ? "Saving..." : "Add payment"}
           </Button>
         </div>
