@@ -19,11 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import {
-  Expense,
-  Group,
-  fetchGroup,
-} from "@/lib/api-client";
+import { Expense, Group, fetchGroup } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 
 function formatAmount(expense: Expense) {
@@ -229,6 +225,137 @@ function PaymentsCard({ group }: { group: Group }) {
   );
 }
 
+function NetBalancesCard({ group }: { group: Group }) {
+  const summary = useMemo(() => {
+    const currency = group.expenses[0]?.currency || "USD";
+    const expensesWithPayments = group.expenses.filter(
+      (expense) => (expense.payments?.length ?? 0) > 0
+    );
+    const totalPayments = expensesWithPayments.reduce(
+      (sum, expense) =>
+        sum +
+        (expense.payments ?? []).reduce(
+          (sub, payment) => sub + Number(payment.amount || 0),
+          0
+        ),
+      0
+    );
+    const totalExpenseAmount = expensesWithPayments.reduce(
+      (sum, expense) => sum + Number(expense.amount || 0),
+      0
+    );
+
+    const paidByMember = expensesWithPayments.reduce<Record<string, number>>(
+      (acc, expense) => {
+        (expense.payments ?? []).forEach((payment) => {
+          const amount = Number(payment.amount);
+          if (Number.isNaN(amount)) return;
+          acc[payment.payerId] = (acc[payment.payerId] ?? 0) + amount;
+        });
+        return acc;
+      },
+      {}
+    );
+
+    const owedByMember = expensesWithPayments.reduce<Record<string, number>>(
+      (acc, expense) => {
+        const expenseTotal = Number(expense.amount);
+        const totalPaid = (expense.payments ?? []).reduce(
+          (sum, p) => sum + Number(p.amount || 0),
+          0
+        );
+        expense.participants.forEach((participant) => {
+          const fullShare = Number(
+            expense.participantCosts?.[participant.memberId] ??
+              participant.shareAmount ??
+              0
+          );
+          if (Number.isNaN(fullShare)) return;
+          const ratio = expenseTotal > 0 ? fullShare / expenseTotal : 0;
+          const owedPortion = totalPaid > 0 ? totalPaid * ratio : 0;
+          acc[participant.memberId] =
+            (acc[participant.memberId] ?? 0) + owedPortion;
+        });
+        return acc;
+      },
+      {}
+    );
+
+    const allMemberIds = new Set([
+      ...Object.keys(paidByMember),
+      ...Object.keys(owedByMember),
+    ]);
+    const entries = Array.from(allMemberIds).map((memberId) => ({
+      memberId,
+      paid: paidByMember[memberId] ?? 0,
+      owed: owedByMember[memberId] ?? 0,
+      net: (paidByMember[memberId] ?? 0) - (owedByMember[memberId] ?? 0),
+    }));
+
+    return { currency, entries, totalPayments, totalExpenseAmount };
+  }, [group.expenses]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: summary.currency,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  return (
+    <Card className="border-muted bg-background">
+      <CardHeader className="space-y-1">
+        <CardTitle>Net balances</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {summary.entries.length ? (
+          <ul className="space-y-2">
+            {summary.entries
+              .sort((a, b) => b.net - a.net)
+              .map(({ memberId, net, paid, owed }) => {
+                const name =
+                  group.members.find((m) => m.id === memberId)?.displayName ??
+                  memberId;
+                return (
+                  <li
+                    key={memberId}
+                    className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">
+                        {name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Paid {formatCurrency(paid)} · Owes{" "}
+                        {formatCurrency(owed)}
+                      </span>
+                    </div>
+                    <span
+                      className={`font-semibold ${
+                        net >= 0 ? "text-green-600" : "text-destructive"
+                      }`}
+                    >
+                      {formatCurrency(net)}
+                    </span>
+                  </li>
+                );
+              })}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No payments recorded yet.
+          </p>
+        )}
+        {summary.totalPayments !== summary.totalExpenseAmount ? (
+          <p className="text-xs italic text-muted-foreground text-right">
+            Does not include unpaid expenses
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function GroupMembers({ group }: { group: GroupWithHandlers }) {
   return (
     <Card className="border-muted bg-background">
@@ -280,7 +407,9 @@ function GroupExpenses({
   const sortedExpenses = useMemo(
     () =>
       [...group.expenses].sort(
-        (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
+        (a, b) =>
+          new Date(b.createdAt || b.date).getTime() -
+          new Date(a.createdAt || a.date).getTime()
       ),
     [group.expenses]
   );
@@ -393,6 +522,7 @@ export default function GroupDetailPage() {
               <div className="space-y-4">
                 <GroupCostsCard group={data} />
                 <PaymentsCard group={data} />
+                <NetBalancesCard group={data} />
                 <GroupMembers
                   group={{
                     ...data,
@@ -409,7 +539,11 @@ export default function GroupDetailPage() {
                 }}
                 actionsSlot={
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={data._toggleAddExpense}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={data._toggleAddExpense}
+                    >
                       Add
                     </Button>
                     <Button
@@ -420,7 +554,9 @@ export default function GroupDetailPage() {
                       Upload
                     </Button>
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/groups/${data.id}/uploads`}>Batch upload</Link>
+                      <Link href={`/groups/${data.id}/uploads`}>
+                        Batch upload
+                      </Link>
                     </Button>
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/groups/${data.id}/expenses`}>View all</Link>
