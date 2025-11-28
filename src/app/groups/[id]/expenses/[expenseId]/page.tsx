@@ -13,6 +13,7 @@ import {
   Expense,
   ExpensePayment,
   Group,
+  deleteExpense,
   deleteExpensePayment,
   fetchExpense,
   fetchGroup,
@@ -212,6 +213,23 @@ export default function ExpenseDetailPage() {
                     </Button>
                     <Button size="sm" onClick={() => setShowEditExpense(true)}>
                       Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={async () => {
+                        const confirmed = window.confirm("Delete this expense? This cannot be undone.");
+                        if (!confirmed) return;
+                        try {
+                          await deleteExpense(expense.id);
+                          await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                          window.history.back();
+                        } catch (err: any) {
+                          alert(err?.message ?? "Could not delete expense");
+                        }
+                      }}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>
