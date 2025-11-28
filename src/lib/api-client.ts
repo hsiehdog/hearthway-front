@@ -598,22 +598,43 @@ export async function uploadExpenseFile(groupId: string, file: File): Promise<Ex
     return expense;
   }
 
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/expense-uploads`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
+  const presign = await requestUploadUrl(groupId, file.name, file.type || "application/octet-stream");
+  const putResponse = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
   });
 
-  if (!response.ok) {
-    const message = await response.text();
+  if (!putResponse.ok) {
+    const message = await putResponse.text();
     throw new Error(message || "Upload failed");
   }
 
-  const data = (await response.json()) as { expenseId: string };
-  return fetchExpense(data.expenseId);
+  await completeUpload(presign.upload.id);
+  return fetchExpense(presign.expenseId);
+}
+
+export type PresignUploadResponse = {
+  upload: UploadedExpense;
+  expenseId: string;
+  uploadUrl: string;
+};
+
+export async function requestUploadUrl(
+  groupId: string,
+  fileName: string,
+  contentType: string,
+): Promise<PresignUploadResponse> {
+  const response = await request<PresignUploadResponse>(`/groups/${groupId}/expense-uploads/presign`, "POST", {
+    fileName,
+    contentType,
+  });
+  return response;
+}
+
+export async function completeUpload(uploadId: string): Promise<{ upload: UploadedExpense }> {
+  const response = await request<{ upload: UploadedExpense }>(`/uploads/${uploadId}/complete`, "POST");
+  return response;
 }
 
 export async function uploadExpenseBatch(groupId: string, files: File[]): Promise<{
@@ -626,25 +647,31 @@ export async function uploadExpenseBatch(groupId: string, files: File[]): Promis
     return { uploads: [], expenseIds };
   }
 
-  if (!API_BASE_URL) {
-    throw new Error("API base URL is not configured.");
+  const results: { upload: UploadedExpense; expenseId: string }[] = [];
+
+  for (const file of files) {
+    const presign = await requestUploadUrl(groupId, file.name, file.type || "application/octet-stream");
+
+    const putResponse = await fetch(presign.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+      },
+      body: file,
+    });
+
+    if (!putResponse.ok) {
+      throw new Error(`Failed to upload ${file.name}`);
+    }
+
+    await completeUpload(presign.upload.id);
+    results.push({ upload: presign.upload, expenseId: presign.expenseId });
   }
 
-  const formData = new FormData();
-  files.forEach((file) => formData.append("files", file));
-
-  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/expense-uploads/batch`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Failed to upload expenses");
-  }
-
-  return (await response.json()) as { uploads: UploadedExpense[]; expenseIds: string[] };
+  return {
+    uploads: results.map((r) => r.upload),
+    expenseIds: results.map((r) => r.expenseId),
+  };
 }
 
 function mapToChatMessage(

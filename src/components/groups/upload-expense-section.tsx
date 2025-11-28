@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadExpenseFile, Expense, UploadedExpense } from "@/lib/api-client";
+import { Expense, UploadedExpense, requestUploadUrl, completeUpload, fetchExpense } from "@/lib/api-client";
 
 type Props = {
   groupId: string;
@@ -19,9 +19,20 @@ export function UploadExpenseSection({ groupId, onCreated, uploads }: Props) {
   const [file, setFile] = useState<File | null>(null);
 
   const uploadMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!file) throw new Error("File is required");
-      return uploadExpenseFile(groupId, file);
+
+      const presign = await requestUploadUrl(groupId, file.name, file.type || "application/octet-stream");
+      const putResp = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!putResp.ok) {
+        throw new Error("Failed to upload file");
+      }
+      await completeUpload(presign.upload.id);
+      return fetchExpense(presign.expenseId);
     },
     onSuccess: async (expense) => {
       setFile(null);
