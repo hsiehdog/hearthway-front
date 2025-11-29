@@ -326,7 +326,7 @@ function NetBalancesCard({ group }: { group: Group }) {
                         {name}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Paid {formatCurrency(paid)} · Owes{" "}
+                        Paid {formatCurrency(paid)} · Costs{" "}
                         {formatCurrency(owed)}
                       </span>
                     </div>
