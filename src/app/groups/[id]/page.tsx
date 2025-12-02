@@ -470,6 +470,9 @@ export default function GroupDetailPage() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showUploadOnly, setShowUploadOnly] = useState(false);
   const queryClient = useQueryClient();
+  const handleAddMember = () => setShowAddMember(true);
+  const handleAddExpense = () => setShowAddExpense(true);
+  const handleUploadOnly = () => setShowUploadOnly(true);
 
   const { data, isPending, error } = useQuery<Group>({
     queryKey: ["group", groupId],
@@ -526,30 +529,30 @@ export default function GroupDetailPage() {
                 <GroupMembers
                   group={{
                     ...data,
-                    _toggleAddMember: () => setShowAddMember(true),
-                    _toggleUpload: () => setShowUploadOnly(true),
+                    _toggleAddMember: handleAddMember,
+                    _toggleUpload: handleUploadOnly,
                   }}
                 />
               </div>
               <GroupExpenses
                 group={{
                   ...data,
-                  _toggleAddExpense: () => setShowAddExpense(true),
-                  _toggleUpload: () => setShowUploadOnly(true),
+                  _toggleAddExpense: handleAddExpense,
+                  _toggleUpload: handleUploadOnly,
                 }}
                 actionsSlot={
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={data._toggleAddExpense}
+                      onClick={handleAddExpense}
                     >
                       Add
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => data._toggleUpload?.()}
+                      onClick={handleUploadOnly}
                     >
                       Upload
                     </Button>
