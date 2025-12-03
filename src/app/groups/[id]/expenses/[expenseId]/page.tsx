@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   Expense,
   ExpensePayment,
@@ -89,12 +90,19 @@ export default function ExpenseDetailPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-          <Card>
-            <CardHeader className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-2xl font-semibold">
-                  {expense.name || "Expense"}
-                </CardTitle>
+            <Link
+              href={`/groups/${groupId}`}
+              className="group inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              <span>Back to {group?.name ?? "group"}</span>
+            </Link>
+            <Card>
+              <CardHeader className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-2xl font-semibold">
+                    {expense.name || "Expense"}
+                  </CardTitle>
                   {expense.description ? (
                     <CardDescription>{expense.description}</CardDescription>
                   ) : null}

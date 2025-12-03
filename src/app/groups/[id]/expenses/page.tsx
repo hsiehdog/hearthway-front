@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +12,7 @@ import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Expense, Group, deleteExpense, fetchGroup } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -215,32 +216,41 @@ export default function GroupExpensesTablePage() {
             </CardHeader>
           </Card>
         ) : data ? (
-          <Card className="border-muted bg-background">
-            <CardHeader>
-              <CardTitle>Expenses table</CardTitle>
-              <CardDescription>
-                Sortable view of all expenses. Filter by participant to see their owed amounts.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 flex items-center gap-2">
-                <label className="text-sm text-muted-foreground">Filter by participant</label>
-                <select
-                  value={participantFilter}
-                  onChange={(e) => setParticipantFilter(e.target.value)}
-                  className="flex h-9 w-56 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="all">All</option>
-                  {data.members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.displayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <DataTable columns={tableColumns} data={rows} footerRenderers={footerRenderers} />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Link
+              href={`/groups/${groupId}`}
+              className="group inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              <span>Back to {data.name}</span>
+            </Link>
+            <Card className="border-muted bg-background">
+              <CardHeader>
+                <CardTitle>Expenses table</CardTitle>
+                <CardDescription>
+                  Sortable view of all expenses. Filter by participant to see their owed amounts.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4 flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Filter by participant</label>
+                  <select
+                    value={participantFilter}
+                    onChange={(e) => setParticipantFilter(e.target.value)}
+                    className="flex h-9 w-56 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="all">All</option>
+                    {data.members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <DataTable columns={tableColumns} data={rows} footerRenderers={footerRenderers} />
+              </CardContent>
+            </Card>
+          </div>
         ) : null}
       </AppShell>
     </ProtectedRoute>

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { Button } from "@/components/ui/button";
@@ -156,19 +158,21 @@ export default function UploadExpensesPage() {
     <ProtectedRoute>
       <AppShell>
         <div className="space-y-6">
+          <Link
+            href={`/groups/${groupId}`}
+            className="group inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            <span>Back to {group?.name ?? "group"}</span>
+          </Link>
           <div>
             <h1 className="text-2xl font-semibold">Upload expenses</h1>
             <p className="text-sm text-muted-foreground">
-              Group: {group?.name ?? "Loading..."} — Upload multiple receipts, let us parse them, then review and confirm
-              each expense.
+              Upload multiple receipts, let us parse them, then review and confirm each expense.
             </p>
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Upload files</CardTitle>
-              <CardDescription>Drag in receipts or documents.</CardDescription>
-            </CardHeader>
             <CardContent className="space-y-4">
               {entries.length === 0 ? (
                 <div className="space-y-2">
