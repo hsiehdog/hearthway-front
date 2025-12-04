@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useRef } from "react";
 import { Expense, Group, fetchGroup } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 
@@ -35,7 +36,6 @@ function formatAmount(expense: Expense) {
 type GroupWithHandlers = Group & {
   _toggleAddMember?: () => void;
   _toggleAddExpense?: () => void;
-  _toggleUpload?: () => void;
   _actionsSlot?: React.ReactNode;
 };
 
@@ -468,17 +468,55 @@ export default function GroupDetailPage() {
   const groupId = id ?? "";
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
-  const [showUploadOnly, setShowUploadOnly] = useState(false);
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  const [showInlineUpload, setShowInlineUpload] = useState(false);
+  const [autoOpenUploadPicker, setAutoOpenUploadPicker] = useState(false);
+  const uploadCardRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
   const handleAddMember = () => setShowAddMember(true);
   const handleAddExpense = () => setShowAddExpense(true);
-  const handleUploadOnly = () => setShowUploadOnly(true);
 
   const { data, isPending, error } = useQuery<Group>({
     queryKey: ["group", groupId],
     queryFn: () => fetchGroup(groupId),
     enabled: Boolean(groupId),
   });
+
+  useEffect(() => {
+    const updateIsMobile = () => {
+      if (typeof window === "undefined") return;
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const smallScreen = window.matchMedia("(max-width: 1024px)").matches;
+      setIsMobileOrTablet(coarsePointer || smallScreen);
+    };
+
+    updateIsMobile();
+
+    const coarseMedia = window.matchMedia("(pointer: coarse)");
+    const smallScreenMedia = window.matchMedia("(max-width: 1024px)");
+    const addListener = (media: MediaQueryList) => {
+      if (typeof media.addEventListener === "function") {
+        media.addEventListener("change", updateIsMobile);
+      } else if (typeof media.addListener === "function") {
+        media.addListener(updateIsMobile);
+      }
+    };
+    addListener(coarseMedia);
+    addListener(smallScreenMedia);
+
+    return () => {
+      if (typeof coarseMedia.removeEventListener === "function") {
+        coarseMedia.removeEventListener("change", updateIsMobile);
+      } else if (typeof coarseMedia.removeListener === "function") {
+        coarseMedia.removeListener(updateIsMobile);
+      }
+      if (typeof smallScreenMedia.removeEventListener === "function") {
+        smallScreenMedia.removeEventListener("change", updateIsMobile);
+      } else if (typeof smallScreenMedia.removeListener === "function") {
+        smallScreenMedia.removeListener(updateIsMobile);
+      }
+    };
+  }, []);
 
   return (
     <ProtectedRoute>
@@ -530,7 +568,6 @@ export default function GroupDetailPage() {
                   group={{
                     ...data,
                     _toggleAddMember: handleAddMember,
-                    _toggleUpload: handleUploadOnly,
                   }}
                 />
               </div>
@@ -538,7 +575,6 @@ export default function GroupDetailPage() {
                 group={{
                   ...data,
                   _toggleAddExpense: handleAddExpense,
-                  _toggleUpload: handleUploadOnly,
                 }}
                 actionsSlot={
                   <div className="flex items-center gap-2">
@@ -549,18 +585,25 @@ export default function GroupDetailPage() {
                     >
                       Add
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleUploadOnly}
-                    >
-                      Upload
-                    </Button>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/groups/${data.id}/uploads`}>
-                        Batch upload
-                      </Link>
-                    </Button>
+                    {isMobileOrTablet ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setShowInlineUpload(true);
+                          setAutoOpenUploadPicker(true);
+                          requestAnimationFrame(() => {
+                            uploadCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          });
+                        }}
+                      >
+                        Upload
+                      </Button>
+                    ) : (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/groups/${data.id}/uploads`}>Upload</Link>
+                      </Button>
+                    )}
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/groups/${data.id}/expenses`}>View all</Link>
                     </Button>
@@ -570,6 +613,31 @@ export default function GroupDetailPage() {
                   router.push(`/groups/${groupId}/expenses/${expense.id}`);
                 }}
               />
+              {isMobileOrTablet && showInlineUpload ? (
+                <Card ref={uploadCardRef} className="border-muted bg-muted/20">
+                  <CardHeader>
+                    <CardTitle>Upload a receipt</CardTitle>
+                    <CardDescription>
+                      Take a photo or choose from your library, then confirm before uploading.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <UploadExpenseSection
+                      groupId={groupId}
+                      autoOpenPicker={autoOpenUploadPicker}
+                      onCancel={() => {
+                        setShowInlineUpload(false);
+                        setAutoOpenUploadPicker(false);
+                      }}
+                      onCreated={() => {
+                        setShowInlineUpload(false);
+                        setAutoOpenUploadPicker(false);
+                        queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -603,27 +671,6 @@ export default function GroupDetailPage() {
               members={data?.members ?? []}
               onSuccess={() => setShowAddExpense(false)}
               asCard={false}
-            />
-          </CardContent>
-        </Card>
-      </Dialog>
-
-      <Dialog open={showUploadOnly} onClose={() => setShowUploadOnly(false)}>
-        <Card className="border-none shadow-none">
-          <CardHeader>
-            <CardTitle>Upload a receipt</CardTitle>
-            <CardDescription>
-              Upload a PDF, doc, or image and we’ll parse it into an expense
-              draft.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <UploadExpenseSection
-              groupId={groupId}
-              onCreated={(expense) => {
-                setShowUploadOnly(false);
-                queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-              }}
             />
           </CardContent>
         </Card>
