@@ -30,6 +30,13 @@ type LineItemState = {
   totalAmount: string;
 };
 
+const generateId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+};
+
 export function CreateExpenseForm({
   groupId,
   members,
@@ -190,7 +197,7 @@ export function CreateExpenseForm({
     setLineItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: generateId(),
         description: "",
         category: "",
         quantity: "1",

@@ -9,7 +9,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, X } from "lucide-react";
 import {
   Expense,
   ExpensePayment,
@@ -350,14 +350,25 @@ export default function ExpenseDetailPage() {
                 setPaymentToEdit(null);
               }}
             >
-              <Card className="border-none shadow-lg">
-                <CardHeader>
+              <Card className="relative border-none shadow-lg">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 z-20"
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setPaymentToEdit(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <CardHeader className="space-y-1 px-3 py-2">
                   <CardTitle>{paymentToEdit ? "Update payment" : "Add payment"}</CardTitle>
                   <CardDescription>
                     {paymentToEdit ? "Modify this payment record." : "Record a payment toward this expense."}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-3 pb-6 pt-2">
                   <AddPaymentForm
                     expense={expense}
                     group={group}
@@ -377,12 +388,20 @@ export default function ExpenseDetailPage() {
             </Dialog>
 
             <Dialog open={showEditExpense} onClose={() => setShowEditExpense(false)}>
-              <Card className="border-none shadow-lg">
-                <CardHeader>
+              <Card className="relative max-h-[90vh] overflow-y-auto border-none shadow-lg">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 z-20"
+                  onClick={() => setShowEditExpense(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <CardHeader className="space-y-1 px-3 py-1">
                   <CardTitle>Edit expense</CardTitle>
                   <CardDescription>Update details for this expense.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 pb-6 pt-1">
                   <CreateExpenseForm
                     groupId={groupId}
                     members={group?.members ?? []}

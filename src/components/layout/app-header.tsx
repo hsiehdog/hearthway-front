@@ -106,6 +106,24 @@ export function AppHeader() {
           </DropdownMenu>
         </div>
       </div>
+      <div className="border-t bg-background/90 pb-3 pt-2 md:hidden">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4">
+          {links.map((link) => (
+            <Button
+              key={link.href}
+              asChild
+              variant={
+                pathname === link.href || pathname?.startsWith(link.href)
+                  ? "secondary"
+                  : "ghost"
+              }
+              className="flex-1"
+            >
+              <Link href={link.href}>{link.label}</Link>
+            </Button>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }

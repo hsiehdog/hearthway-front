@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useRef } from "react";
+import { X } from "lucide-react";
 import { Expense, Group, fetchGroup } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 
@@ -644,8 +644,16 @@ export default function GroupDetailPage() {
       </AppShell>
 
       <Dialog open={showAddMember} onClose={() => setShowAddMember(false)}>
-        <Card className="border-none shadow-none">
-          <CardHeader>
+        <Card className="relative border-none shadow-none">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 z-20"
+            onClick={() => setShowAddMember(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <CardHeader className="space-y-1 px-3 py-2">
             <CardTitle>Add a member</CardTitle>
             <CardDescription>
               Invite someone new for future expenses.
@@ -658,14 +666,22 @@ export default function GroupDetailPage() {
       </Dialog>
 
       <Dialog open={showAddExpense} onClose={() => setShowAddExpense(false)}>
-        <Card className="border-none shadow-none">
-          <CardHeader>
+        <Card className="relative border-none shadow-none max-h-[90vh] overflow-y-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 z-20"
+            onClick={() => setShowAddExpense(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <CardHeader className="space-y-1 px-3 py-2">
             <CardTitle>Add an expense</CardTitle>
             <CardDescription>
               Log a cost and choose who participated.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 pb-6 pt-2">
             <CreateExpenseForm
               groupId={groupId}
               members={data?.members ?? []}
