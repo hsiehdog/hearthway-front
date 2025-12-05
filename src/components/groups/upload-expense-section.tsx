@@ -43,9 +43,9 @@ export function UploadExpenseSection({
   const defaultInputRef = useRef<HTMLInputElement | null>(null);
   const mobileLibraryInputRef = useRef<HTMLInputElement | null>(null);
   const [autoOpened, setAutoOpened] = useState(false);
-  const [status, setStatus] = useState<"idle" | "uploading" | "parsing" | "ready" | "error">(
-    "idle"
-  );
+  const [status, setStatus] = useState<
+    "idle" | "uploading" | "parsing" | "ready" | "error"
+  >("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const progressForStatus = (currentStatus: typeof status) => {
     if (currentStatus === "uploading") return 30;
@@ -59,10 +59,10 @@ export function UploadExpenseSection({
     status === "uploading"
       ? "Uploading"
       : status === "parsing"
-      ? "Parsing"
-      : status === "ready"
-      ? "Ready"
-      : "Error";
+        ? "Parsing"
+        : status === "ready"
+          ? "Ready"
+          : "Error";
 
   useEffect(() => {
     const updateIsMobile = () => {
@@ -102,7 +102,13 @@ export function UploadExpenseSection({
 
   const acceptTypes = isMobileOrTablet ? "image/*" : ".pdf,.doc,.docx,image/*";
   useEffect(() => {
-    if (autoOpenPicker && isMobileOrTablet && !autoOpened && !file && status === "idle") {
+    if (
+      autoOpenPicker &&
+      isMobileOrTablet &&
+      !autoOpened &&
+      !file &&
+      status === "idle"
+    ) {
       mobileLibraryInputRef.current?.click();
       setAutoOpened(true);
     }
@@ -156,7 +162,7 @@ export function UploadExpenseSection({
       const presign = await requestUploadUrl(
         groupId,
         file.name,
-        file.type || "application/octet-stream"
+        file.type || "application/octet-stream",
       );
       const putResp = await fetch(presign.uploadUrl, {
         method: "PUT",
@@ -187,15 +193,17 @@ export function UploadExpenseSection({
       const parsingDone =
         uploadsList.length === 0 ||
         uploadsList.every(
-          (u) => u.parsingStatus && ["SUCCESS", "FAILED"].includes(u.parsingStatus)
+          (u) =>
+            u.parsingStatus && ["SUCCESS", "FAILED"].includes(u.parsingStatus),
         );
 
       if (parsingDone) {
         setStatus("ready");
         setStatusMessage("Parsed. Opening expense…");
         const payerMemberId =
-          members?.find((member) => member.userId && member.userId === session?.user?.id)?.id ??
-          members?.find((member) => member.userId === null)?.id;
+          members?.find(
+            (member) => member.userId && member.userId === session?.user?.id,
+          )?.id ?? members?.find((member) => member.userId === null)?.id;
         if (payerMemberId) {
           try {
             await payExpense({
@@ -207,7 +215,9 @@ export function UploadExpenseSection({
             queryClient.invalidateQueries({ queryKey: ["group", groupId] });
           } catch (paymentError: any) {
             setStatus("error");
-            setStatusMessage(paymentError?.message || "Could not record payment.");
+            setStatusMessage(
+              paymentError?.message || "Could not record payment.",
+            );
             return;
           }
         }
@@ -218,7 +228,9 @@ export function UploadExpenseSection({
 
       if (attempt >= 23) {
         setStatus("error");
-        setStatusMessage("Parsing is taking longer than expected. Please try again.");
+        setStatusMessage(
+          "Parsing is taking longer than expected. Please try again.",
+        );
         return;
       }
 
@@ -289,7 +301,9 @@ export function UploadExpenseSection({
               type="button"
               size="sm"
               onClick={() => uploadMutation.mutate()}
-              disabled={!file || uploadMutation.isPending || status === "parsing"}
+              disabled={
+                !file || uploadMutation.isPending || status === "parsing"
+              }
             >
               {uploadMutation.isPending ? "Uploading..." : "Upload"}
             </Button>
@@ -332,7 +346,9 @@ export function UploadExpenseSection({
           {statusMessage ? (
             <p
               className={`text-xs ${
-                status === "error" ? "text-destructive" : "text-muted-foreground"
+                status === "error"
+                  ? "text-destructive"
+                  : "text-muted-foreground"
               }`}
             >
               {statusMessage}

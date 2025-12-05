@@ -9,16 +9,31 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type DataTableProps<TData> = {
   columns: ColumnDef<TData, any>[];
   data: TData[];
   pageSize?: number;
-  footerRenderers?: Record<string, (ctx: FooterContext<TData, unknown>) => React.ReactNode>;
+  footerRenderers?: Record<
+    string,
+    (ctx: FooterContext<TData, unknown>) => React.ReactNode
+  >;
 };
 
-export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers = {} }: DataTableProps<TData>) {
+export function DataTable<TData>({
+  columns,
+  data,
+  pageSize = 10,
+  footerRenderers = {},
+}: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const table = useReactTable({
@@ -45,8 +60,11 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const responsiveClass =
-                    (header.column.columnDef.meta as { className?: string } | undefined)?.className ??
-                    "";
+                    (
+                      header.column.columnDef.meta as
+                        | { className?: string }
+                        | undefined
+                    )?.className ?? "";
                   return (
                     <TableHead
                       key={header.id}
@@ -55,7 +73,10 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
                     >
                       {header.isPlaceholder ? null : (
                         <div className="flex items-center gap-1">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                           {{
                             asc: "↑",
                             desc: "↓",
@@ -71,14 +92,23 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => {
                     const responsiveClass =
-                      (cell.column.columnDef.meta as { className?: string } | undefined)?.className ??
-                      "";
+                      (
+                        cell.column.columnDef.meta as
+                          | { className?: string }
+                          | undefined
+                      )?.className ?? "";
                     return (
                       <TableCell key={cell.id} className={responsiveClass}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </TableCell>
                     );
                   })}
@@ -86,7 +116,10 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-sm">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-sm"
+                >
                   No results.
                 </TableCell>
               </TableRow>
@@ -111,13 +144,18 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
             Showing {table.getState().pagination.pageIndex * pageSize + 1} to{" "}
-            {Math.min((table.getState().pagination.pageIndex + 1) * pageSize, data.length)} out of{" "}
-            {data.length}
+            {Math.min(
+              (table.getState().pagination.pageIndex + 1) * pageSize,
+              data.length,
+            )}{" "}
+            out of {data.length}
           </span>
           <div className="flex items-center gap-2">
             <button
               className={`rounded-md border px-3 py-1 text-sm transition ${
-                table.getCanPreviousPage() ? "font-semibold text-foreground" : "disabled:opacity-50"
+                table.getCanPreviousPage()
+                  ? "font-semibold text-foreground"
+                  : "disabled:opacity-50"
               }`}
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
@@ -126,7 +164,9 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
             </button>
             <button
               className={`rounded-md border px-3 py-1 text-sm transition ${
-                table.getCanNextPage() ? "font-semibold text-foreground" : "disabled:opacity-50"
+                table.getCanNextPage()
+                  ? "font-semibold text-foreground"
+                  : "disabled:opacity-50"
               }`}
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}

@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -32,11 +38,15 @@ export default function AccountPage() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground">Name</p>
-                <p className="text-sm font-medium">{data?.user?.name || "Teammate"}</p>
+                <p className="text-sm font-medium">
+                  {data?.user?.name || "Teammate"}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Email</p>
-                <p className="text-sm font-medium">{data?.user?.email || "Not provided"}</p>
+                <p className="text-sm font-medium">
+                  {data?.user?.email || "Not provided"}
+                </p>
               </div>
               <div className="pt-2">
                 <Button variant="destructive" onClick={handleSignOut}>

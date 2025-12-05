@@ -19,7 +19,9 @@ export function ActivityFeed({ activity, isLoading }: ActivityFeedProps) {
     <Card className="border-muted">
       <CardHeader>
         <CardTitle>Activity</CardTitle>
-        <CardDescription>Recent expenses, receipts, and settlement updates</CardDescription>
+        <CardDescription>
+          Recent expenses, receipts, and settlement updates
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading &&
@@ -34,7 +36,9 @@ export function ActivityFeed({ activity, isLoading }: ActivityFeedProps) {
           activity?.map((item, index) => (
             <div key={item.id} className="space-y-1">
               <p className="text-sm font-medium">{item.title}</p>
-              <p className="text-sm text-muted-foreground">{item.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {item.description}
+              </p>
               <p className="text-xs text-muted-foreground">{item.timestamp}</p>
               {index !== activity.length - 1 && <Separator className="mt-3" />}
             </div>

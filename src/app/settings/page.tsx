@@ -105,9 +105,12 @@ export default function SettingsPage() {
       <AppShell>
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Account settings</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Account settings
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Update your profile and session preferences. Everything here saves straight to your backend.
+              Update your profile and session preferences. Everything here saves
+              straight to your backend.
             </p>
           </div>
 
@@ -115,7 +118,9 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Profile</CardTitle>
-                <CardDescription>Basic details that other teammates can see.</CardDescription>
+                <CardDescription>
+                  Basic details that other teammates can see.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form className="space-y-4" onSubmit={handleProfileSubmit}>
@@ -139,7 +144,11 @@ export default function SettingsPage() {
                       {profileFeedback.message}
                     </p>
                   )}
-                  <Button type="submit" className="w-full" disabled={isProfilePending}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isProfilePending}
+                  >
                     {isProfilePending ? "Saving…" : "Save profile"}
                   </Button>
                 </form>
@@ -149,7 +158,9 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Session</CardTitle>
-                <CardDescription>Reset your password whenever needed.</CardDescription>
+                <CardDescription>
+                  Reset your password whenever needed.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <form className="space-y-4" onSubmit={handlePasswordSubmit}>
@@ -159,7 +170,9 @@ export default function SettingsPage() {
                       id="current-password"
                       type="password"
                       value={currentPassword}
-                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      onChange={(event) =>
+                        setCurrentPassword(event.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -182,7 +195,11 @@ export default function SettingsPage() {
                       {passwordFeedback.message}
                     </p>
                   )}
-                  <Button type="submit" className="w-full" disabled={isPasswordPending}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isPasswordPending}
+                  >
                     {isPasswordPending ? "Updating…" : "Update password"}
                   </Button>
                 </form>

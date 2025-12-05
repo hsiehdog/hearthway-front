@@ -86,8 +86,8 @@ const columns: ColumnDef<ExpenseRow>[] = [
           row.original.status === "PAID"
             ? "default"
             : row.original.status === "REIMBURSED"
-            ? "secondary"
-            : "outline"
+              ? "secondary"
+              : "outline"
         }
       >
         {(row.getValue("status") as string)?.toLowerCase()}
@@ -164,8 +164,8 @@ export default function GroupExpensesTablePage() {
             expense.splitType === "PERCENT"
               ? "Percentage"
               : expense.splitType === "SHARES"
-              ? "Shares"
-              : "Even",
+                ? "Shares"
+                : "Even",
           splitDetail: expense.participants
             .map((p) => {
               const memberName = memberMap.get(p.memberId) ?? p.memberId;
@@ -189,7 +189,7 @@ export default function GroupExpensesTablePage() {
         const total = rows.reduce(
           (sum, row) =>
             sum + (Number.isFinite(row.displayAmount) ? row.displayAmount : 0),
-          0
+          0,
         );
         const currency = rows[0]?.currency || "USD";
         return (
@@ -203,7 +203,7 @@ export default function GroupExpensesTablePage() {
         );
       },
     }),
-    [rows]
+    [rows],
   );
   const actionColumn: ColumnDef<ExpenseRow> = {
     header: "Actions",
@@ -222,7 +222,7 @@ export default function GroupExpensesTablePage() {
           className="text-destructive"
           onClick={async () => {
             const confirmed = window.confirm(
-              "Delete this expense? This cannot be undone."
+              "Delete this expense? This cannot be undone.",
             );
             if (confirmed) {
               await deleteExpense(row.original.id);

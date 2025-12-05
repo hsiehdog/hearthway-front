@@ -59,7 +59,7 @@ export function ChatPanel() {
 
       queryClient.setQueryData<ChatMessage[]>(
         ["chat"],
-        [...previous, userMessage, assistantPlaceholder]
+        [...previous, userMessage, assistantPlaceholder],
       );
 
       setMessage("");
@@ -79,7 +79,7 @@ export function ChatPanel() {
               entry.role === "assistant" &&
               entry.isOptimistic &&
               entry.content === "Thinking…"
-            )
+            ),
         );
         const hydratedResponse: ChatMessage = {
           id: crypto.randomUUID(),

@@ -25,7 +25,10 @@ export function AppShell({ children }: AppShellProps) {
   const { data } = authClient.useSession();
 
   const activeHref = useMemo(
-    () => navLinks.find((link) => pathname === link.href || pathname?.startsWith(link.href))?.href,
+    () =>
+      navLinks.find(
+        (link) => pathname === link.href || pathname?.startsWith(link.href),
+      )?.href,
     [pathname],
   );
 
@@ -38,14 +41,20 @@ export function AppShell({ children }: AppShellProps) {
         )}
       >
         <div className="flex items-center justify-between px-3 py-4">
-          <span className={cn("text-sm font-semibold", collapsed && "sr-only")}>Hearthway</span>
+          <span className={cn("text-sm font-semibold", collapsed && "sr-only")}>
+            Hearthway
+          </span>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setCollapsed((prev) => !prev)}
             aria-label="Toggle navigation"
           >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
           </Button>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-2 pb-4">
@@ -65,10 +74,17 @@ export function AppShell({ children }: AppShellProps) {
           ))}
         </nav>
         <div className="border-t px-3 py-3 text-xs text-muted-foreground">
-          <p className={cn("font-semibold text-foreground", collapsed && "sr-only")}>
+          <p
+            className={cn(
+              "font-semibold text-foreground",
+              collapsed && "sr-only",
+            )}
+          >
             {data?.user?.name || "Teammate"}
           </p>
-          <p className={cn(collapsed && "sr-only")}>{data?.user?.email || ""}</p>
+          <p className={cn(collapsed && "sr-only")}>
+            {data?.user?.email || ""}
+          </p>
         </div>
       </aside>
 

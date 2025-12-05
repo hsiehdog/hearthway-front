@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreateGroupPayload, Group, createGroup } from "@/lib/api-client";
@@ -58,7 +64,9 @@ export function CreateGroupForm({ onCreated }: Props) {
             <Input
               id="name"
               value={formState.name}
-              onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
+              onChange={(event) =>
+                setFormState((prev) => ({ ...prev, name: event.target.value }))
+              }
               placeholder="e.g., Cabin repairs or Barcelona weekend"
               required
             />
@@ -71,14 +79,18 @@ export function CreateGroupForm({ onCreated }: Props) {
                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={formState.type}
                 onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, type: event.target.value as Group["type"] }))
+                  setFormState((prev) => ({
+                    ...prev,
+                    type: event.target.value as Group["type"],
+                  }))
                 }
               >
                 <option value="PROJECT">Project</option>
                 <option value="TRIP">Trip</option>
               </select>
               <p className="text-xs text-muted-foreground">
-                Projects cover household or club costs; Trips unlock multi-participant splits.
+                Projects cover household or club costs; Trips unlock
+                multi-participant splits.
               </p>
             </div>
             <div className="space-y-2">
@@ -87,7 +99,10 @@ export function CreateGroupForm({ onCreated }: Props) {
                 id="memberDisplayName"
                 value={formState.memberDisplayName}
                 onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, memberDisplayName: event.target.value }))
+                  setFormState((prev) => ({
+                    ...prev,
+                    memberDisplayName: event.target.value,
+                  }))
                 }
                 placeholder="How teammates will see you"
               />
@@ -100,7 +115,10 @@ export function CreateGroupForm({ onCreated }: Props) {
               type="email"
               value={formState.memberEmail}
               onChange={(event) =>
-                setFormState((prev) => ({ ...prev, memberEmail: event.target.value }))
+                setFormState((prev) => ({
+                  ...prev,
+                  memberEmail: event.target.value,
+                }))
               }
               placeholder="you@example.com"
             />

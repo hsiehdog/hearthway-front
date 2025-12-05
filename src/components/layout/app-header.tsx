@@ -40,7 +40,10 @@ export function AppHeader() {
     <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 font-semibold"
+          >
             <MessageSquareMore className="h-5 w-5 text-primary" />
             <span>Hearthway</span>
             <Badge variant="outline" className="text-xs">
@@ -55,10 +58,7 @@ export function AppHeader() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 px-2"
-              >
+              <Button variant="ghost" className="flex items-center gap-2 px-2">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>
                     {initials || data?.user?.email?.[0]?.toUpperCase() || "?"}
@@ -75,7 +75,9 @@ export function AppHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem disabled>Account settings (soon)</DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                Account settings (soon)
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 Sign out

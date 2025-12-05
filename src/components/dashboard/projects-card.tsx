@@ -26,7 +26,9 @@ export function ProjectsCard({ projects, isLoading }: ProjectsCardProps) {
     <Card className="border-muted">
       <CardHeader>
         <CardTitle>Groups & trips</CardTitle>
-        <CardDescription>Follow every shared tab and who is involved</CardDescription>
+        <CardDescription>
+          Follow every shared tab and who is involved
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading &&
@@ -39,7 +41,10 @@ export function ProjectsCard({ projects, isLoading }: ProjectsCardProps) {
 
         {!isLoading &&
           projects?.map((project) => (
-            <div key={project.id} className="flex flex-wrap items-center justify-between gap-2">
+            <div
+              key={project.id}
+              className="flex flex-wrap items-center justify-between gap-2"
+            >
               <div>
                 <p className="font-medium">{project.name}</p>
                 <p className="text-sm text-muted-foreground">

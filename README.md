@@ -1,6 +1,7 @@
 # Hearthway Frontend
 
 Hearthway makes it effortless for groups to log shared expenses, attach receipts, apply flexible splits, and settle up cleanly. Two modes support different workflows:
+
 - **Project Mode:** Neighbors, families, clubs, or small teams can track repairs or group purchases and get transparent, even/percentage/share-based splits plus settlement suggestions.
 - **Trip Mode:** Travel-friendly expense capture with participation-based splits, multi-currency handling, light itinerary sharing, and an end-of-trip settlement plan.
 
@@ -28,12 +29,12 @@ Visit `http://localhost:3000` for the marketing page, `/signup` or `/login` for 
 
 Create `.env.local` with the following:
 
-| Variable | Description |
-| --- | --- |
-| `NEXT_PUBLIC_APP_URL` | Public URL for the frontend (used in links and fallbacks). |
-| `NEXT_PUBLIC_AUTH_BASE_URL` | Backend origin that hosts Better Auth (e.g., `http://localhost:4000`). |
-| `NEXT_PUBLIC_AUTH_BASE_PATH` | Better Auth path on the backend (defaults to `/auth`). |
-| `NEXT_PUBLIC_API_BASE_URL` | Backend API origin for expense data. When unset, dashboard + chat use mock data. Requests include cookies, so enable CORS with credentials on the backend. |
+| Variable                     | Description                                                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`        | Public URL for the frontend (used in links and fallbacks).                                                                                                 |
+| `NEXT_PUBLIC_AUTH_BASE_URL`  | Backend origin that hosts Better Auth (e.g., `http://localhost:4000`).                                                                                     |
+| `NEXT_PUBLIC_AUTH_BASE_PATH` | Better Auth path on the backend (defaults to `/auth`).                                                                                                     |
+| `NEXT_PUBLIC_API_BASE_URL`   | Backend API origin for expense data. When unset, dashboard + chat use mock data. Requests include cookies, so enable CORS with credentials on the backend. |
 
 ## Architecture notes
 
@@ -44,12 +45,12 @@ Create `.env.local` with the following:
 
 ## Scripts
 
-| Script | Description |
-| --- | --- |
-| `pnpm dev` | Start the Next.js dev server |
-| `pnpm build` | Create a production build |
-| `pnpm start` | Run the built app |
-| `pnpm lint` | Run ESLint |
+| Script       | Description                  |
+| ------------ | ---------------------------- |
+| `pnpm dev`   | Start the Next.js dev server |
+| `pnpm build` | Create a production build    |
+| `pnpm start` | Run the built app            |
+| `pnpm lint`  | Run ESLint                   |
 
 ## Next steps for Hearthway
 

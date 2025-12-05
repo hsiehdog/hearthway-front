@@ -64,7 +64,7 @@ export default function UploadExpensesPage() {
           id: crypto.randomUUID(),
           fileName: file.name,
           status: "uploading",
-        }))
+        })),
       );
       return uploadExpenseBatch(groupId, selectedFiles);
     },
@@ -77,7 +77,7 @@ export default function UploadExpensesPage() {
           }),
           expenseId,
           status: "parsing",
-        }))
+        })),
       );
 
       result.expenseIds.forEach((expenseId, index) => {
@@ -90,7 +90,7 @@ export default function UploadExpensesPage() {
           ...entry,
           status: "error",
           error: err?.message ?? "Upload failed",
-        }))
+        })),
       );
     },
   });
@@ -123,7 +123,7 @@ export default function UploadExpensesPage() {
   const pollExpense = async (
     expenseId: string,
     entryIndex: number,
-    attempt = 0
+    attempt = 0,
   ) => {
     try {
       let expense = await fetchExpense(expenseId);
@@ -132,7 +132,7 @@ export default function UploadExpensesPage() {
         uploads.length === 0 ||
         uploads.every(
           (u) =>
-            u.parsingStatus && ["SUCCESS", "FAILED"].includes(u.parsingStatus)
+            u.parsingStatus && ["SUCCESS", "FAILED"].includes(u.parsingStatus),
         );
 
       if (parsingDone) {
@@ -159,8 +159,8 @@ export default function UploadExpensesPage() {
                       error:
                         paymentError?.message ?? "Could not record payment",
                     }
-                  : entry
-              )
+                  : entry,
+              ),
             );
             return;
           }
@@ -174,16 +174,16 @@ export default function UploadExpensesPage() {
                   expense,
                   status: "ready",
                 }
-              : entry
-          )
+              : entry,
+          ),
         );
         return;
       }
 
       setEntries((prev) =>
         prev.map((entry, idx) =>
-          idx === entryIndex ? { ...entry, status: "parsing" } : entry
-        )
+          idx === entryIndex ? { ...entry, status: "parsing" } : entry,
+        ),
       );
       setTimeout(() => pollExpense(expenseId, entryIndex, attempt + 1), 1500);
     } catch (error: any) {
@@ -196,8 +196,8 @@ export default function UploadExpensesPage() {
                   status: "error",
                   error: error?.message ?? "Could not load expense",
                 }
-              : entry
-          )
+              : entry,
+          ),
         );
       }
       setTimeout(() => pollExpense(expenseId, entryIndex, attempt + 1), 1500);
@@ -213,7 +213,7 @@ export default function UploadExpensesPage() {
 
   const readyExpenses = useMemo(
     () => entries.filter((e) => e.status === "ready" && e.expense),
-    [entries]
+    [entries],
   );
 
   const memberName = (memberId: string) =>
@@ -334,10 +334,10 @@ export default function UploadExpensesPage() {
                             {entry.status === "uploading"
                               ? "Uploading..."
                               : entry.status === "parsing"
-                              ? "Parsing..."
-                              : entry.status === "ready"
-                              ? "Ready to review"
-                              : entry.error ?? "Queued"}
+                                ? "Parsing..."
+                                : entry.status === "ready"
+                                  ? "Ready to review"
+                                  : (entry.error ?? "Queued")}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -398,8 +398,8 @@ export default function UploadExpensesPage() {
                                 entry.expense.status === "PAID"
                                   ? "default"
                                   : entry.expense.status === "REIMBURSED"
-                                  ? "secondary"
-                                  : "outline"
+                                    ? "secondary"
+                                    : "outline"
                               }
                               className="text-[11px] font-medium"
                             >
@@ -408,7 +408,7 @@ export default function UploadExpensesPage() {
                             <p className="text-xl font-semibold text-foreground">
                               {formatCurrency(
                                 Number(entry.expense.amount),
-                                entry.expense.currency
+                                entry.expense.currency,
                               )}
                             </p>
                           </div>
@@ -417,7 +417,7 @@ export default function UploadExpensesPage() {
                               "en-US",
                               {
                                 timeZone: "UTC",
-                              }
+                              },
                             )}
                           </CardDescription>
                         </div>
@@ -429,8 +429,8 @@ export default function UploadExpensesPage() {
                             {entry.expense.splitType === "SHARES"
                               ? "Split by shares"
                               : entry.expense.splitType === "PERCENT"
-                              ? "Split by percentage"
-                              : "Split evenly"}
+                                ? "Split by percentage"
+                                : "Split evenly"}
                           </p>
                           {entry.expense.participants.length ? (
                             <div className="overflow-hidden rounded-md border">
@@ -464,9 +464,9 @@ export default function UploadExpensesPage() {
                                               p.memberId
                                             ] ??
                                               p.shareAmount ??
-                                              0
+                                              0,
                                           ),
-                                          entry.expense.currency
+                                          entry.expense.currency,
                                         )}
                                       </td>
                                     </tr>
@@ -516,7 +516,7 @@ export default function UploadExpensesPage() {
                                       <td className="px-3 py-2">
                                         {payment.paidAt
                                           ? new Date(
-                                              payment.paidAt
+                                              payment.paidAt,
                                             ).toLocaleDateString("en-US", {
                                               timeZone: "UTC",
                                             })
@@ -528,7 +528,7 @@ export default function UploadExpensesPage() {
                                       <td className="px-2 py-2">
                                         {formatCurrency(
                                           Number(payment.amount),
-                                          payment.currency
+                                          payment.currency,
                                         )}
                                       </td>
                                     </tr>
@@ -546,9 +546,9 @@ export default function UploadExpensesPage() {
                                         (entry.expense.payments ?? []).reduce(
                                           (sum, p) =>
                                             sum + Number(p.amount || 0),
-                                          0
+                                          0,
                                         ),
-                                        entry.expense.currency
+                                        entry.expense.currency,
                                       )}
                                     </td>
                                   </tr>
@@ -572,7 +572,7 @@ export default function UploadExpensesPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  ) : null
+                  ) : null,
                 )}
               </CardContent>
             </Card>

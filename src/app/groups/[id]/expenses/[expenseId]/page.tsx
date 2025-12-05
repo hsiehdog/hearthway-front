@@ -72,15 +72,15 @@ export default function ExpenseDetailPage() {
     () =>
       (expense?.payments ?? []).reduce(
         (sum, p) => sum + Number(p.amount || 0),
-        0
+        0,
       ),
-    [expense?.payments]
+    [expense?.payments],
   );
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEditExpense, setShowEditExpense] = useState(false);
   const [paymentToEdit, setPaymentToEdit] = useState<ExpensePayment | null>(
-    null
+    null,
   );
   const deletePayment = useMutation({
     mutationFn: (paymentId: string) =>
@@ -137,8 +137,8 @@ export default function ExpenseDetailPage() {
                         expense.status === "PAID"
                           ? "default"
                           : expense.status === "REIMBURSED"
-                          ? "secondary"
-                          : "outline"
+                            ? "secondary"
+                            : "outline"
                       }
                       className="text-[11px] font-medium"
                     >
@@ -162,8 +162,8 @@ export default function ExpenseDetailPage() {
                     {expense.splitType === "SHARES"
                       ? "Split by shares"
                       : expense.splitType === "PERCENT"
-                      ? "Split by percentage"
-                      : "Split evenly"}
+                        ? "Split by percentage"
+                        : "Split evenly"}
                   </p>
                   {expense.participants.length ? (
                     <div className="overflow-hidden rounded-md border">
@@ -191,9 +191,9 @@ export default function ExpenseDetailPage() {
                                   Number(
                                     expense.participantCosts?.[p.memberId] ??
                                       p.shareAmount ??
-                                      0
+                                      0,
                                   ),
-                                  expense.currency
+                                  expense.currency,
                                 )}
                               </td>
                             </tr>
@@ -225,7 +225,7 @@ export default function ExpenseDetailPage() {
                               <td className="px-3 py-2 text-right">
                                 {formatCurrency(
                                   Number(item.totalAmount),
-                                  expense.currency
+                                  expense.currency,
                                 )}
                               </td>
                             </tr>
@@ -268,7 +268,7 @@ export default function ExpenseDetailPage() {
                       variant="destructive"
                       onClick={async () => {
                         const confirmed = window.confirm(
-                          "Delete this expense? This cannot be undone."
+                          "Delete this expense? This cannot be undone.",
                         );
                         if (!confirmed) return;
                         try {
@@ -330,7 +330,7 @@ export default function ExpenseDetailPage() {
                               {payment.paidAt
                                 ? new Date(payment.paidAt).toLocaleDateString(
                                     "en-US",
-                                    { timeZone: "UTC" }
+                                    { timeZone: "UTC" },
                                   )
                                 : "Unspecified"}
                             </td>
@@ -340,7 +340,7 @@ export default function ExpenseDetailPage() {
                             <td className="px-2 py-2">
                               {formatCurrency(
                                 Number(payment.amount),
-                                payment.currency
+                                payment.currency,
                               )}
                             </td>
                             <td className="px-2 py-2">
@@ -361,7 +361,7 @@ export default function ExpenseDetailPage() {
                                   className="text-destructive"
                                   onClick={() => {
                                     const confirmed = window.confirm(
-                                      "Delete this payment? This cannot be undone."
+                                      "Delete this payment? This cannot be undone.",
                                     );
                                     if (confirmed) {
                                       deletePayment.mutate(payment.id);
@@ -504,25 +504,25 @@ function AddPaymentForm({
     Number(expense.amount) -
       (expense.payments ?? []).reduce(
         (sum, p) => sum + Number(p.amount || 0),
-        0
+        0,
       ),
-    0
+    0,
   );
   const defaultPayer = payment
     ? payment.payerId
-    : group?.members.find((m) => m.userId)?.id ?? group?.members[0]?.id ?? "";
+    : (group?.members.find((m) => m.userId)?.id ?? group?.members[0]?.id ?? "");
   const [amount, setAmount] = useState(
     payment
       ? Number(payment.amount).toFixed(2)
       : outstanding
-      ? outstanding.toFixed(2)
-      : ""
+        ? outstanding.toFixed(2)
+        : "",
   );
   const [payerId, setPayerId] = useState<string>(defaultPayer);
   const [paidAt, setPaidAt] = useState(() =>
     payment && payment.paidAt
       ? payment.paidAt.slice(0, 10)
-      : new Date().toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10),
   );
   const [notes, setNotes] = useState(payment?.notes ?? "");
   const [receiptUrl, setReceiptUrl] = useState(payment?.receiptUrl ?? "");
@@ -536,7 +536,7 @@ function AddPaymentForm({
       setPaidAt(
         payment.paidAt
           ? payment.paidAt.slice(0, 10)
-          : new Date().toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10),
       );
       setNotes(payment.notes ?? "");
       setReceiptUrl(payment.receiptUrl ?? "");

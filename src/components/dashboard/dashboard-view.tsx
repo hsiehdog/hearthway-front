@@ -6,14 +6,21 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { MetricCards } from "@/components/dashboard/metric-cards";
 import { ProjectsCard } from "@/components/dashboard/projects-card";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { authClient } from "@/lib/auth/client";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 
 export function DashboardView() {
   const { data } = authClient.useSession();
   const isAuthenticated = Boolean(data?.session);
-  const { usageQuery, projectQuery, activityQuery } = useDashboardData(isAuthenticated);
+  const { usageQuery, projectQuery, activityQuery } =
+    useDashboardData(isAuthenticated);
 
   return (
     <div className="space-y-6">
@@ -33,14 +40,22 @@ export function DashboardView() {
           </div>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Your Better Auth session cookie is reused when calling your backend. Configure{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">NEXT_PUBLIC_API_BASE_URL</code> to point at Hearthway&apos;s expense APIs for live balances and settlements.
+          Your Better Auth session cookie is reused when calling your backend.
+          Configure{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">
+            NEXT_PUBLIC_API_BASE_URL
+          </code>{" "}
+          to point at Hearthway&apos;s expense APIs for live balances and
+          settlements.
         </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr] lg:items-start">
         <div className="space-y-4">
-          <MetricCards metrics={usageQuery.data} isLoading={usageQuery.isPending} />
+          <MetricCards
+            metrics={usageQuery.data}
+            isLoading={usageQuery.isPending}
+          />
           <ProjectsCard
             projects={projectQuery.data}
             isLoading={projectQuery.isPending}

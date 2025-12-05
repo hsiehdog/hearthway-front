@@ -168,7 +168,13 @@ const mockData = {
     { id: "expenses", label: "Expenses logged", value: "128", delta: 14 },
     { id: "receipts", label: "Receipts saved", value: "76", delta: 9 },
     { id: "people", label: "People squared up", value: "42", delta: 6 },
-    { id: "balance", label: "Open balance", value: "$1,870", delta: -2, helper: "Lower is better" },
+    {
+      id: "balance",
+      label: "Open balance",
+      value: "$1,870",
+      delta: -2,
+      helper: "Lower is better",
+    },
   ] satisfies UsageMetric[],
   projects: [
     {
@@ -233,7 +239,12 @@ const mockData = {
     updatedAt: new Date().toISOString(),
     members: [
       { id: "m1", userId: "u1", displayName: "You", email: "you@example.com" },
-      { id: "m2", userId: null, displayName: "Maya", email: "maya@example.com" },
+      {
+        id: "m2",
+        userId: null,
+        displayName: "Maya",
+        email: "maya@example.com",
+      },
     ],
     expenses: [
       {
@@ -307,7 +318,11 @@ export async function fetchChatHistory(): Promise<ChatMessage[]> {
     "GET",
   );
   return (response.sessions || [])
-    .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt || 0).getTime() -
+        new Date(b.createdAt || 0).getTime(),
+    )
     .flatMap((entry) => mapSessionToMessages(entry));
 }
 
@@ -416,7 +431,9 @@ export type AddGroupMemberPayload = {
   email?: string;
 };
 
-export async function addMemberToGroup(payload: AddGroupMemberPayload): Promise<Group> {
+export async function addMemberToGroup(
+  payload: AddGroupMemberPayload,
+): Promise<Group> {
   if (isMock) {
     await delay(200);
     const newMember = {
@@ -456,7 +473,9 @@ export type CreateExpensePayload = {
   }[];
 };
 
-export async function createExpense(payload: CreateExpensePayload): Promise<Expense> {
+export async function createExpense(
+  payload: CreateExpensePayload,
+): Promise<Expense> {
   if (isMock) {
     await delay(320);
     const now = new Date().toISOString();
@@ -492,13 +511,19 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
     };
   }
 
-  const response = await request<{ expense: Expense }>("/expenses", "POST", payload);
+  const response = await request<{ expense: Expense }>(
+    "/expenses",
+    "POST",
+    payload,
+  );
   return response.expense;
 }
 
 export type UpdateExpensePayload = CreateExpensePayload & { id: string };
 
-export async function updateExpense(payload: UpdateExpensePayload): Promise<Expense> {
+export async function updateExpense(
+  payload: UpdateExpensePayload,
+): Promise<Expense> {
   if (isMock) {
     await delay(200);
     return {
@@ -511,7 +536,11 @@ export async function updateExpense(payload: UpdateExpensePayload): Promise<Expe
   }
 
   const { id, ...body } = payload;
-  const response = await request<{ expense: Expense }>(`/expenses/${id}`, "PUT", body);
+  const response = await request<{ expense: Expense }>(
+    `/expenses/${id}`,
+    "PUT",
+    body,
+  );
   return response.expense;
 }
 
@@ -524,19 +553,25 @@ export type PayExpensePayload = {
   receiptUrl?: string;
 };
 
-export async function payExpense(payload: PayExpensePayload): Promise<{ expense: Expense }> {
+export async function payExpense(
+  payload: PayExpensePayload,
+): Promise<{ expense: Expense }> {
   const { expenseId, ...body } = payload;
-  const response = await request<{ expense: Expense; payment: ExpensePayment; outstanding: string }>(
-    `/expenses/${expenseId}/payments`,
-    "POST",
-    body,
-  );
+  const response = await request<{
+    expense: Expense;
+    payment: ExpensePayment;
+    outstanding: string;
+  }>(`/expenses/${expenseId}/payments`, "POST", body);
   return { expense: response.expense };
 }
 
-export type UpdateExpensePaymentPayload = PayExpensePayload & { paymentId: string };
+export type UpdateExpensePaymentPayload = PayExpensePayload & {
+  paymentId: string;
+};
 
-export async function updateExpensePayment(payload: UpdateExpensePaymentPayload): Promise<{ expense: Expense }> {
+export async function updateExpensePayment(
+  payload: UpdateExpensePaymentPayload,
+): Promise<{ expense: Expense }> {
   const { expenseId, paymentId, ...body } = payload;
   const response = await request<{ expense: Expense }>(
     `/expenses/${expenseId}/payments/${paymentId}`,
@@ -546,14 +581,19 @@ export async function updateExpensePayment(payload: UpdateExpensePaymentPayload)
   return response;
 }
 
-export async function deleteExpensePayment(expenseId: string, paymentId: string): Promise<{ expense: Expense }> {
+export async function deleteExpensePayment(
+  expenseId: string,
+  paymentId: string,
+): Promise<{ expense: Expense }> {
   if (isMock) {
     await delay(100);
     const expense = mockData.group.expenses.find((e) => e.id === expenseId);
     if (!expense) {
       throw new Error("Expense not found");
     }
-    expense.payments = (expense.payments ?? []).filter((p) => p.id !== paymentId);
+    expense.payments = (expense.payments ?? []).filter(
+      (p) => p.id !== paymentId,
+    );
     return { expense: expense as Expense };
   }
 
@@ -583,11 +623,17 @@ export async function fetchExpense(expenseId: string): Promise<Expense> {
     };
   }
 
-  const response = await request<{ expense: Expense }>(`/expenses/${expenseId}`, "GET");
+  const response = await request<{ expense: Expense }>(
+    `/expenses/${expenseId}`,
+    "GET",
+  );
   return response.expense;
 }
 
-export async function uploadExpenseFile(groupId: string, file: File): Promise<Expense> {
+export async function uploadExpenseFile(
+  groupId: string,
+  file: File,
+): Promise<Expense> {
   if (isMock) {
     await delay(200);
     const expense: Expense = {
@@ -598,7 +644,11 @@ export async function uploadExpenseFile(groupId: string, file: File): Promise<Ex
     return expense;
   }
 
-  const presign = await requestUploadUrl(groupId, file.name, file.type || "application/octet-stream");
+  const presign = await requestUploadUrl(
+    groupId,
+    file.name,
+    file.type || "application/octet-stream",
+  );
   const putResponse = await fetch(presign.uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type || "application/octet-stream" },
@@ -625,19 +675,31 @@ export async function requestUploadUrl(
   fileName: string,
   contentType: string,
 ): Promise<PresignUploadResponse> {
-  const response = await request<PresignUploadResponse>(`/groups/${groupId}/expense-uploads/presign`, "POST", {
-    fileName,
-    contentType,
-  });
+  const response = await request<PresignUploadResponse>(
+    `/groups/${groupId}/expense-uploads/presign`,
+    "POST",
+    {
+      fileName,
+      contentType,
+    },
+  );
   return response;
 }
 
-export async function completeUpload(uploadId: string): Promise<{ upload: UploadedExpense }> {
-  const response = await request<{ upload: UploadedExpense }>(`/uploads/${uploadId}/complete`, "POST");
+export async function completeUpload(
+  uploadId: string,
+): Promise<{ upload: UploadedExpense }> {
+  const response = await request<{ upload: UploadedExpense }>(
+    `/uploads/${uploadId}/complete`,
+    "POST",
+  );
   return response;
 }
 
-export async function uploadExpenseBatch(groupId: string, files: File[]): Promise<{
+export async function uploadExpenseBatch(
+  groupId: string,
+  files: File[],
+): Promise<{
   uploads: UploadedExpense[];
   expenseIds: string[];
 }> {
@@ -650,7 +712,11 @@ export async function uploadExpenseBatch(groupId: string, files: File[]): Promis
   const results: { upload: UploadedExpense; expenseId: string }[] = [];
 
   for (const file of files) {
-    const presign = await requestUploadUrl(groupId, file.name, file.type || "application/octet-stream");
+    const presign = await requestUploadUrl(
+      groupId,
+      file.name,
+      file.type || "application/octet-stream",
+    );
 
     const putResponse = await fetch(presign.uploadUrl, {
       method: "PUT",

@@ -20,7 +20,10 @@ type Props = {
   paymentsSlot?: React.ReactNode;
 };
 
-type ParticipantState = Record<string, { checked: boolean; shareAmount?: string }>;
+type ParticipantState = Record<
+  string,
+  { checked: boolean; shareAmount?: string }
+>;
 type LineItemState = {
   id: string;
   description: string;
@@ -31,7 +34,10 @@ type LineItemState = {
 };
 
 const generateId = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
@@ -51,9 +57,13 @@ export function CreateExpenseForm({
   const [amount, setAmount] = useState(initialExpense?.amount ?? "");
   const [currency, setCurrency] = useState(initialExpense?.currency ?? "USD");
   const [date, setDate] = useState(
-    () => initialExpense?.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+    () =>
+      initialExpense?.date?.slice(0, 10) ??
+      new Date().toISOString().slice(0, 10),
   );
-  const [description, setDescription] = useState(initialExpense?.description ?? "");
+  const [description, setDescription] = useState(
+    initialExpense?.description ?? "",
+  );
   const [splitType, setSplitType] = useState<"EVEN" | "PERCENT" | "SHARES">(
     initialExpense?.splitType ?? "EVEN",
   );
@@ -61,7 +71,9 @@ export function CreateExpenseForm({
     if (initialExpense) {
       const map: ParticipantState = {};
       members.forEach((member) => {
-        const match = initialExpense.participants.find((p) => p.memberId === member.id);
+        const match = initialExpense.participants.find(
+          (p) => p.memberId === member.id,
+        );
         map[member.id] = {
           checked: Boolean(match),
           shareAmount: match?.shareAmount ?? undefined,
@@ -101,7 +113,9 @@ export function CreateExpenseForm({
           .filter(([, value]) => value.checked)
           .map(([memberId, value]) => ({
             memberId,
-            shareAmount: value.shareAmount ? Number(value.shareAmount) : undefined,
+            shareAmount: value.shareAmount
+              ? Number(value.shareAmount)
+              : undefined,
           })),
         lineItems: lineItems.length
           ? lineItems.map((item) => ({
@@ -139,22 +153,33 @@ export function CreateExpenseForm({
     [participants],
   );
   const [participantError, setParticipantError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; name?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    amount?: string;
+    name?: string;
+  }>({});
   const [payerId] = useState<string>("");
 
   const percentError = useMemo(() => {
     if (splitType !== "PERCENT") return "";
     const totalPercent = Object.entries(participants)
       .filter(([, value]) => value.checked)
-      .reduce((sum, [, value]) => sum + (value.shareAmount ? Number(value.shareAmount) : 0), 0);
-    return Math.round(totalPercent) === 100 ? "" : "Percents must add up to 100%";
+      .reduce(
+        (sum, [, value]) =>
+          sum + (value.shareAmount ? Number(value.shareAmount) : 0),
+        0,
+      );
+    return Math.round(totalPercent) === 100
+      ? ""
+      : "Percents must add up to 100%";
   }, [participants, splitType]);
 
   const shareError = useMemo(() => {
     if (splitType !== "SHARES") return "";
     const invalidShare = Object.entries(participants)
       .filter(([, value]) => value.checked)
-      .some(([, value]) => !value.shareAmount || Number(value.shareAmount) <= 0);
+      .some(
+        ([, value]) => !value.shareAmount || Number(value.shareAmount) <= 0,
+      );
     return invalidShare ? "All shares must be greater than 0" : "";
   }, [participants, splitType]);
 
@@ -208,12 +233,20 @@ export function CreateExpenseForm({
     ]);
   };
 
-  const updateLineItem = (id: string, field: keyof LineItemState, value: string) => {
+  const updateLineItem = (
+    id: string,
+    field: keyof LineItemState,
+    value: string,
+  ) => {
     setLineItems((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
         const next = { ...item, [field]: value };
-        if ((field === "quantity" || field === "unitAmount") && next.quantity && next.unitAmount) {
+        if (
+          (field === "quantity" || field === "unitAmount") &&
+          next.quantity &&
+          next.unitAmount
+        ) {
           const maybeTotal = Number(next.quantity) * Number(next.unitAmount);
           if (!Number.isNaN(maybeTotal)) {
             next.totalAmount = maybeTotal.toFixed(2);
@@ -243,14 +276,19 @@ export function CreateExpenseForm({
     if (!initialExpense) return;
     setAmount(initialExpense.amount ?? "");
     setCurrency(initialExpense.currency ?? "USD");
-    setDate(initialExpense.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+    setDate(
+      initialExpense.date?.slice(0, 10) ??
+        new Date().toISOString().slice(0, 10),
+    );
     setName(initialExpense.name ?? "");
     setDescription(initialExpense.description ?? "");
     setSplitType(initialExpense.splitType ?? "EVEN");
     setParticipants(() => {
       const map: ParticipantState = {};
       members.forEach((member) => {
-        const match = initialExpense.participants.find((p) => p.memberId === member.id);
+        const match = initialExpense.participants.find(
+          (p) => p.memberId === member.id,
+        );
         map[member.id] = {
           checked: Boolean(match),
           shareAmount: match?.shareAmount ?? undefined,
@@ -270,7 +308,10 @@ export function CreateExpenseForm({
     );
   }, [initialExpense, members]);
 
-  const toNumber = (value: string | number | undefined, fallback: number): number => {
+  const toNumber = (
+    value: string | number | undefined,
+    fallback: number,
+  ): number => {
     if (value === "" || value === undefined) return fallback;
     const parsed = typeof value === "number" ? value : Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -288,7 +329,9 @@ export function CreateExpenseForm({
             placeholder="e.g., Dinner, Supplies"
             required
           />
-          {fieldErrors.name ? <p className="text-xs text-destructive">{fieldErrors.name}</p> : null}
+          {fieldErrors.name ? (
+            <p className="text-xs text-destructive">{fieldErrors.name}</p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
@@ -352,80 +395,99 @@ export function CreateExpenseForm({
         </div>
       </div>
 
-      {fieldErrors.description ? <p className="text-xs text-destructive">{fieldErrors.description}</p> : null}
+      {fieldErrors.description ? (
+        <p className="text-xs text-destructive">{fieldErrors.description}</p>
+      ) : null}
 
       <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-foreground">Line items</p>
-          <Button type="button" size="sm" variant="secondary" onClick={addLineItem}>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={addLineItem}
+          >
             + Add item
           </Button>
         </div>
-            {lineItems.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No line items yet.</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-1 text-xs uppercase tracking-wide text-muted-foreground md:grid">
-                  <span>Description</span>
-                  <span>Category</span>
-                  <span>Qty</span>
-                  <span>Unit</span>
-                  <span>Total</span>
-                  <span className="sr-only">Actions</span>
-                </div>
-                {lineItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid gap-2 border-b pb-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-center md:gap-3"
-                  >
-                    <Input
-                      value={item.description}
-                      onChange={(event) => updateLineItem(item.id, "description", event.target.value)}
-                    />
-                    <Input
-                      value={item.category}
-                      onChange={(event) => updateLineItem(item.id, "category", event.target.value)}
-                    />
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.quantity}
-                      onChange={(event) => updateLineItem(item.id, "quantity", event.target.value)}
-                    />
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unitAmount}
-                      onChange={(event) => updateLineItem(item.id, "unitAmount", event.target.value)}
-                    />
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={item.totalAmount}
-                      onChange={(event) => updateLineItem(item.id, "totalAmount", event.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="justify-self-end text-destructive"
-                      onClick={() => removeLineItem(item.id)}
-                      aria-label="Remove line item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+        {lineItems.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No line items yet.</p>
+        ) : (
+          <div className="space-y-2">
+            <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-1 text-xs uppercase tracking-wide text-muted-foreground md:grid">
+              <span>Description</span>
+              <span>Category</span>
+              <span>Qty</span>
+              <span>Unit</span>
+              <span>Total</span>
+              <span className="sr-only">Actions</span>
+            </div>
+            {lineItems.map((item) => (
+              <div
+                key={item.id}
+                className="grid gap-2 border-b pb-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-center md:gap-3"
+              >
+                <Input
+                  value={item.description}
+                  onChange={(event) =>
+                    updateLineItem(item.id, "description", event.target.value)
+                  }
+                />
+                <Input
+                  value={item.category}
+                  onChange={(event) =>
+                    updateLineItem(item.id, "category", event.target.value)
+                  }
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.quantity}
+                  onChange={(event) =>
+                    updateLineItem(item.id, "quantity", event.target.value)
+                  }
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.unitAmount}
+                  onChange={(event) =>
+                    updateLineItem(item.id, "unitAmount", event.target.value)
+                  }
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={item.totalAmount}
+                  onChange={(event) =>
+                    updateLineItem(item.id, "totalAmount", event.target.value)
+                  }
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="justify-self-end text-destructive"
+                  onClick={() => removeLineItem(item.id)}
+                  aria-label="Remove line item"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-            )}
+            ))}
           </div>
+        )}
+      </div>
 
       <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-foreground">Split among</p>
-          <p className="text-xs text-muted-foreground">{selectedCount} selected</p>
+          <p className="text-xs text-muted-foreground">
+            {selectedCount} selected
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {members.map((member) => {
@@ -448,7 +510,9 @@ export function CreateExpenseForm({
             );
           })}
         </div>
-        {participantError ? <p className="text-xs text-destructive">{participantError}</p> : null}
+        {participantError ? (
+          <p className="text-xs text-destructive">{participantError}</p>
+        ) : null}
         {splitType !== "EVEN" ? (
           <div className="space-y-2 pt-2">
             {members
@@ -456,7 +520,10 @@ export function CreateExpenseForm({
               .map((member) => {
                 const state = participants[member.id];
                 return (
-                  <div key={member.id} className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm"
+                  >
                     <span>{member.displayName}</span>
                     <Input
                       type="number"
@@ -465,7 +532,9 @@ export function CreateExpenseForm({
                       className="h-9 w-28"
                       placeholder={splitType === "PERCENT" ? "%" : "Shares"}
                       value={state?.shareAmount ?? ""}
-                      onChange={(event) => updateShareAmount(member.id, event.target.value)}
+                      onChange={(event) =>
+                        updateShareAmount(member.id, event.target.value)
+                      }
                     />
                   </div>
                 );
@@ -488,7 +557,9 @@ export function CreateExpenseForm({
             variant="destructive"
             size="sm"
             onClick={() => {
-              const ok = window.confirm("Delete this expense? This cannot be undone.");
+              const ok = window.confirm(
+                "Delete this expense? This cannot be undone.",
+              );
               if (ok) {
                 onDelete(initialExpense.id);
               }
