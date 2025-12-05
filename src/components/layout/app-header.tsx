@@ -17,11 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth/client";
 
-const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/groups", label: "Groups" },
-];
-
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
@@ -54,21 +49,6 @@ export function AppHeader() {
               beta
             </Badge>
           </Link>
-          <nav className="hidden items-center gap-1 text-sm md:flex">
-            {links.map((link) => (
-              <Button
-                key={link.href}
-                asChild
-                variant={
-                  pathname === link.href || pathname?.startsWith(link.href)
-                    ? "secondary"
-                    : "ghost"
-                }
-              >
-                <Link href={link.href}>{link.label}</Link>
-              </Button>
-            ))}
-          </nav>
         </div>
 
         <div className="flex items-center gap-3">
@@ -104,24 +84,6 @@ export function AppHeader() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </div>
-      <div className="border-t bg-background/90 pb-3 pt-2 md:hidden">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4">
-          {links.map((link) => (
-            <Button
-              key={link.href}
-              asChild
-              variant={
-                pathname === link.href || pathname?.startsWith(link.href)
-                  ? "secondary"
-                  : "ghost"
-              }
-              className="flex-1"
-            >
-              <Link href={link.href}>{link.label}</Link>
-            </Button>
-          ))}
         </div>
       </div>
     </header>
