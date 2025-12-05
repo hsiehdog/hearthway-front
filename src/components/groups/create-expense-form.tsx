@@ -140,6 +140,7 @@ export function CreateExpenseForm({
   );
   const [participantError, setParticipantError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: string; name?: string }>({});
+  const [payerId] = useState<string>("");
 
   const percentError = useMemo(() => {
     if (splitType !== "PERCENT") return "";

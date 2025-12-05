@@ -481,7 +481,7 @@ export default function GroupDetailPage() {
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">
                   <Button asChild size="sm" variant="outline">
-                    <Link href={`/groups/${data.id}/uploads`}>
+                    <Link href={`/groups/${data.id}/batch-scan`}>
                       Scan expense
                     </Link>
                   </Button>
@@ -524,13 +524,11 @@ export default function GroupDetailPage() {
               <Card ref={uploadCardRef} className="border-muted bg-muted/20">
                 <CardHeader>
                   <CardTitle>Scan expense</CardTitle>
-                  <CardDescription>
-                    Upload a photo of a receipt to create an expense.
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <UploadExpenseSection
                     groupId={groupId}
+                    members={data.members}
                     autoOpenPicker={autoOpenUploadPicker}
                     onCancel={() => {
                       setShowInlineUpload(false);

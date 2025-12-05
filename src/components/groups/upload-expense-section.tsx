@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import {
   Expense,
   UploadedExpense,
+  payExpense,
   requestUploadUrl,
   completeUpload,
   fetchExpense,
@@ -17,6 +19,7 @@ import {
 
 type Props = {
   groupId: string;
+  members?: { id: string; userId: string | null; displayName: string }[];
   onCreated?: (expense: Expense) => void;
   onCancel?: () => void;
   autoOpenPicker?: boolean;
@@ -32,6 +35,7 @@ export function UploadExpenseSection({
 }: Props) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
@@ -188,6 +192,24 @@ export function UploadExpenseSection({
       if (parsingDone) {
         setStatus("ready");
         setStatusMessage("Parsed. Opening expense…");
+        const payerMemberId =
+          members?.find((member) => member.userId && member.userId === session?.user?.id)?.id ??
+          members?.find((member) => member.userId === null)?.id;
+        if (payerMemberId) {
+          try {
+            await payExpense({
+              expenseId: expense.id,
+              amount: Number(expense.amount),
+              payerMemberId,
+              paidAt: new Date().toISOString(),
+            });
+            queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+          } catch (paymentError: any) {
+            setStatus("error");
+            setStatusMessage(paymentError?.message || "Could not record payment.");
+            return;
+          }
+        }
         onCreated?.(expense);
         router.push(`/groups/${groupId}/expenses/${expense.id}`);
         return;
