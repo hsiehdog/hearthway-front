@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -127,6 +127,7 @@ export default function GroupExpensesTablePage() {
   const params = useParams<{ id: string }>();
   const groupId = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [participantFilter, setParticipantFilter] = useState<string>("all");
 
   const { data, isPending, error } = useQuery<Group>({
@@ -225,7 +226,7 @@ export default function GroupExpensesTablePage() {
             );
             if (confirmed) {
               await deleteExpense(row.original.id);
-              router.refresh();
+              queryClient.invalidateQueries({ queryKey: ["group", groupId] });
             }
           }}
         >
