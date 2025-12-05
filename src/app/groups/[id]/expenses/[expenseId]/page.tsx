@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/layout/app-shell";
@@ -38,7 +44,9 @@ function formatCurrency(amount: number, currency = "USD") {
 export default function ExpenseDetailPage() {
   const params = useParams<{ id: string; expenseId: string }>();
   const groupId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const expenseId = Array.isArray(params.expenseId) ? params.expenseId[0] : params.expenseId;
+  const expenseId = Array.isArray(params.expenseId)
+    ? params.expenseId[0]
+    : params.expenseId;
   const queryClient = useQueryClient();
 
   const { data: group } = useQuery<Group>({
@@ -47,7 +55,11 @@ export default function ExpenseDetailPage() {
     enabled: Boolean(groupId),
   });
 
-  const { data: expense, isPending, error } = useQuery<Expense>({
+  const {
+    data: expense,
+    isPending,
+    error,
+  } = useQuery<Expense>({
     queryKey: ["expense", expenseId],
     queryFn: () => fetchExpense(expenseId),
     enabled: Boolean(expenseId),
@@ -57,15 +69,22 @@ export default function ExpenseDetailPage() {
     group?.members.find((m) => m.id === memberId)?.displayName ?? memberId;
 
   const paymentsTotal = useMemo(
-    () => (expense?.payments ?? []).reduce((sum, p) => sum + Number(p.amount || 0), 0),
-    [expense?.payments],
+    () =>
+      (expense?.payments ?? []).reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      ),
+    [expense?.payments]
   );
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEditExpense, setShowEditExpense] = useState(false);
-  const [paymentToEdit, setPaymentToEdit] = useState<ExpensePayment | null>(null);
+  const [paymentToEdit, setPaymentToEdit] = useState<ExpensePayment | null>(
+    null
+  );
   const deletePayment = useMutation({
-    mutationFn: (paymentId: string) => deleteExpensePayment(expenseId, paymentId),
+    mutationFn: (paymentId: string) =>
+      deleteExpensePayment(expenseId, paymentId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["expense", expenseId] });
     },
@@ -82,9 +101,13 @@ export default function ExpenseDetailPage() {
         ) : error || !expense ? (
           <Card className="border-destructive/30 bg-destructive/10">
             <CardHeader>
-              <CardTitle className="text-destructive">Unable to load expense</CardTitle>
+              <CardTitle className="text-destructive">
+                Unable to load expense
+              </CardTitle>
               <CardDescription className="text-destructive">
-                {error instanceof Error ? error.message : "Please try again later."}
+                {error instanceof Error
+                  ? error.message
+                  : "Please try again later."}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -114,8 +137,8 @@ export default function ExpenseDetailPage() {
                         expense.status === "PAID"
                           ? "default"
                           : expense.status === "REIMBURSED"
-                            ? "secondary"
-                            : "outline"
+                          ? "secondary"
+                          : "outline"
                       }
                       className="text-[11px] font-medium"
                     >
@@ -126,7 +149,9 @@ export default function ExpenseDetailPage() {
                     </p>
                   </div>
                   <CardDescription>
-                    {new Date(expense.date).toLocaleDateString("en-US", { timeZone: "UTC" })}
+                    {new Date(expense.date).toLocaleDateString("en-US", {
+                      timeZone: "UTC",
+                    })}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -137,8 +162,8 @@ export default function ExpenseDetailPage() {
                     {expense.splitType === "SHARES"
                       ? "Split by shares"
                       : expense.splitType === "PERCENT"
-                        ? "Split by percentage"
-                        : "Split evenly"}
+                      ? "Split by percentage"
+                      : "Split evenly"}
                   </p>
                   {expense.participants.length ? (
                     <div className="overflow-hidden rounded-md border">
@@ -155,13 +180,20 @@ export default function ExpenseDetailPage() {
                               <td className="px-3 py-2">
                                 <span className="text-foreground">
                                   {memberName(p.memberId)}
-                                  {expense.splitType === "SHARES" && p.shareAmount ? ` (${p.shareAmount})` : ""}
+                                  {expense.splitType === "SHARES" &&
+                                  p.shareAmount
+                                    ? ` (${p.shareAmount})`
+                                    : ""}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-right">
                                 {formatCurrency(
-                                  Number(expense.participantCosts?.[p.memberId] ?? p.shareAmount ?? 0),
-                                  expense.currency,
+                                  Number(
+                                    expense.participantCosts?.[p.memberId] ??
+                                      p.shareAmount ??
+                                      0
+                                  ),
+                                  expense.currency
                                 )}
                               </td>
                             </tr>
@@ -187,9 +219,14 @@ export default function ExpenseDetailPage() {
                         <tbody>
                           {expense.lineItems.map((item) => (
                             <tr key={item.id} className="border-t">
-                              <td className="px-3 py-2">{item.description || "Item"}</td>
+                              <td className="px-3 py-2">
+                                {item.description || "Item"}
+                              </td>
                               <td className="px-3 py-2 text-right">
-                                {formatCurrency(Number(item.totalAmount), expense.currency)}
+                                {formatCurrency(
+                                  Number(item.totalAmount),
+                                  expense.currency
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -202,7 +239,11 @@ export default function ExpenseDetailPage() {
                   <div className="text-sm text-muted-foreground">
                     {expense.uploads && expense.uploads.length ? (
                       <a
-                        href={expense.uploads[0].signedUrl ?? expense.uploads[0].fileUrl ?? undefined}
+                        href={
+                          expense.uploads[0].signedUrl ??
+                          expense.uploads[0].fileUrl ??
+                          undefined
+                        }
                         target="_blank"
                         rel="noreferrer"
                         className="text-primary underline"
@@ -226,11 +267,15 @@ export default function ExpenseDetailPage() {
                       size="sm"
                       variant="destructive"
                       onClick={async () => {
-                        const confirmed = window.confirm("Delete this expense? This cannot be undone.");
+                        const confirmed = window.confirm(
+                          "Delete this expense? This cannot be undone."
+                        );
                         if (!confirmed) return;
                         try {
                           await deleteExpense(expense.id);
-                          await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                          await queryClient.invalidateQueries({
+                            queryKey: ["group", groupId],
+                          });
                           window.history.back();
                         } catch (err: any) {
                           alert(err?.message ?? "Could not delete expense");
@@ -278,14 +323,26 @@ export default function ExpenseDetailPage() {
                       <tbody>
                         {expense.payments.map((payment) => (
                           <tr key={payment.id} className="border-t">
-                            <td className="px-3 py-2">{memberName(payment.payerId)}</td>
+                            <td className="px-3 py-2">
+                              {memberName(payment.payerId)}
+                            </td>
                             <td className="px-3 py-2">
                               {payment.paidAt
-                                ? new Date(payment.paidAt).toLocaleDateString("en-US", { timeZone: "UTC" })
+                                ? new Date(payment.paidAt).toLocaleDateString(
+                                    "en-US",
+                                    { timeZone: "UTC" }
+                                  )
                                 : "Unspecified"}
                             </td>
-                            <td className="px-3 py-2">{payment.notes || "—"}</td>
-                            <td className="px-2 py-2">{formatCurrency(Number(payment.amount), payment.currency)}</td>
+                            <td className="px-3 py-2">
+                              {payment.notes || "—"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {formatCurrency(
+                                Number(payment.amount),
+                                payment.currency
+                              )}
+                            </td>
                             <td className="px-2 py-2">
                               <div className="flex items-center justify-end gap-2">
                                 <Button
@@ -298,20 +355,22 @@ export default function ExpenseDetailPage() {
                                 >
                                   Edit
                                 </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={() => {
-                                  const confirmed = window.confirm("Delete this payment? This cannot be undone.");
-                                  if (confirmed) {
-                                    deletePayment.mutate(payment.id);
-                                  }
-                                }}
-                                disabled={deletePayment.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    const confirmed = window.confirm(
+                                      "Delete this payment? This cannot be undone."
+                                    );
+                                    if (confirmed) {
+                                      deletePayment.mutate(payment.id);
+                                    }
+                                  }}
+                                  disabled={deletePayment.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -319,7 +378,9 @@ export default function ExpenseDetailPage() {
                       </tbody>
                       <tfoot className="border-t bg-muted/50">
                         <tr>
-                          <td className="px-3 py-2 text-left font-semibold">Total</td>
+                          <td className="px-3 py-2 text-left font-semibold">
+                            Total
+                          </td>
                           <td className="px-3 py-2 text-left"></td>
                           <td className="px-3 py-2 text-left"></td>
                           <td className="px-2 py-2 font-semibold">
@@ -338,7 +399,9 @@ export default function ExpenseDetailPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No payments recorded.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No payments recorded.
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -362,12 +425,6 @@ export default function ExpenseDetailPage() {
                 >
                   <X className="h-4 w-4" />
                 </Button>
-                <CardHeader className="space-y-1 px-3 py-2">
-                  <CardTitle>{paymentToEdit ? "Update payment" : "Add payment"}</CardTitle>
-                  <CardDescription>
-                    {paymentToEdit ? "Modify this payment record." : "Record a payment toward this expense."}
-                  </CardDescription>
-                </CardHeader>
                 <CardContent className="space-y-4 px-3 pb-6 pt-2">
                   <AddPaymentForm
                     expense={expense}
@@ -381,13 +438,18 @@ export default function ExpenseDetailPage() {
                       setShowPaymentModal(false);
                       setPaymentToEdit(null);
                     }}
-                    submitLabel={paymentToEdit ? "Update payment" : "Add payment"}
+                    submitLabel={
+                      paymentToEdit ? "Update payment" : "Add payment"
+                    }
                   />
                 </CardContent>
               </Card>
             </Dialog>
 
-            <Dialog open={showEditExpense} onClose={() => setShowEditExpense(false)}>
+            <Dialog
+              open={showEditExpense}
+              onClose={() => setShowEditExpense(false)}
+            >
               <Card className="relative max-h-[90vh] overflow-y-auto border-none shadow-lg">
                 <Button
                   variant="ghost"
@@ -397,10 +459,6 @@ export default function ExpenseDetailPage() {
                 >
                   <X className="h-4 w-4" />
                 </Button>
-                <CardHeader className="space-y-1 px-3 py-1">
-                  <CardTitle>Edit expense</CardTitle>
-                  <CardDescription>Update details for this expense.</CardDescription>
-                </CardHeader>
                 <CardContent className="px-3 pb-6 pt-1">
                   <CreateExpenseForm
                     groupId={groupId}
@@ -408,8 +466,12 @@ export default function ExpenseDetailPage() {
                     initialExpense={expense}
                     asCard={false}
                     onSuccess={async () => {
-                      await queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
-                      await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["expense", expense.id],
+                      });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["group", groupId],
+                      });
                       setShowEditExpense(false);
                     }}
                   />
@@ -440,18 +502,27 @@ function AddPaymentForm({
 }) {
   const outstanding = Math.max(
     Number(expense.amount) -
-      (expense.payments ?? []).reduce((sum, p) => sum + Number(p.amount || 0), 0),
-    0,
+      (expense.payments ?? []).reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      ),
+    0
   );
   const defaultPayer = payment
     ? payment.payerId
     : group?.members.find((m) => m.userId)?.id ?? group?.members[0]?.id ?? "";
   const [amount, setAmount] = useState(
-    payment ? Number(payment.amount).toFixed(2) : outstanding ? outstanding.toFixed(2) : "",
+    payment
+      ? Number(payment.amount).toFixed(2)
+      : outstanding
+      ? outstanding.toFixed(2)
+      : ""
   );
   const [payerId, setPayerId] = useState<string>(defaultPayer);
   const [paidAt, setPaidAt] = useState(() =>
-    payment && payment.paidAt ? payment.paidAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    payment && payment.paidAt
+      ? payment.paidAt.slice(0, 10)
+      : new Date().toISOString().slice(0, 10)
   );
   const [notes, setNotes] = useState(payment?.notes ?? "");
   const [receiptUrl, setReceiptUrl] = useState(payment?.receiptUrl ?? "");
@@ -462,7 +533,11 @@ function AddPaymentForm({
     if (payment) {
       setAmount(Number(payment.amount).toFixed(2));
       setPayerId(payment.payerId);
-      setPaidAt(payment.paidAt ? payment.paidAt.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      setPaidAt(
+        payment.paidAt
+          ? payment.paidAt.slice(0, 10)
+          : new Date().toISOString().slice(0, 10)
+      );
       setNotes(payment.notes ?? "");
       setReceiptUrl(payment.receiptUrl ?? "");
     } else {
@@ -478,7 +553,8 @@ function AddPaymentForm({
     mutationFn: async () => {
       setError(null);
       if (!payerId) throw new Error("Select a payer");
-      if (!amount || Number.isNaN(Number(amount))) throw new Error("Enter a valid amount");
+      if (!amount || Number.isNaN(Number(amount)))
+        throw new Error("Enter a valid amount");
 
       if (payment) {
         await updateExpensePayment({
@@ -502,7 +578,9 @@ function AddPaymentForm({
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["expense", expense.id] });
+      await queryClient.invalidateQueries({
+        queryKey: ["expense", expense.id],
+      });
       await onSaved();
     },
     onError: (err: any) => {
@@ -573,7 +651,11 @@ function AddPaymentForm({
         <Button variant="ghost" type="button" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+        <Button
+          type="button"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
           {mutation.isPending ? "Saving..." : submitLabel}
         </Button>
       </div>
