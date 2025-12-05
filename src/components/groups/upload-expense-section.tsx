@@ -28,6 +28,7 @@ type Props = {
 
 export function UploadExpenseSection({
   groupId,
+  members = [],
   onCreated,
   onCancel,
   autoOpenPicker,
