@@ -277,7 +277,7 @@ export function CreateExpenseForm({
 
   const form = (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr] md:items-end">
+      <div className="grid gap-4 md:grid-cols-2 md:items-end">
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -289,6 +289,18 @@ export function CreateExpenseForm({
           />
           {fieldErrors.name ? <p className="text-xs text-destructive">{fieldErrors.name}</p> : null}
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Input
+            id="description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Add context about this expense"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr] md:items-end">
         <div className="space-y-2">
           <Label htmlFor="amount">Amount</Label>
           <div className="relative">
@@ -310,31 +322,6 @@ export function CreateExpenseForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
-          <div className="relative">
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              required
-            />
-            <CalendarDays className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Add context about this expense"
-          />
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="splitType">Split type</Label>
           <select
             id="splitType"
@@ -348,6 +335,19 @@ export function CreateExpenseForm({
             <option value="PERCENT">Percent</option>
             <option value="SHARES">Shares</option>
           </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="date">Date</Label>
+          <div className="relative">
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              required
+            />
+            <CalendarDays className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
         </div>
       </div>
 
