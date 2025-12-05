@@ -413,20 +413,21 @@ function GroupExpenses({
       ),
     [group.expenses]
   );
+  const recentExpenses = sortedExpenses.slice(0, 3);
 
   return (
     <Card className="border-muted bg-background">
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
-          <CardTitle>Expenses</CardTitle>
+          <CardTitle>Recent expenses</CardTitle>
         </div>
         {actionsSlot ?? null}
       </CardHeader>
       <CardContent className="space-y-4">
-        {sortedExpenses.length === 0 ? (
+        {recentExpenses.length === 0 ? (
           <p className="text-sm text-muted-foreground">No expenses yet.</p>
         ) : (
-          sortedExpenses.map((expense) => (
+          recentExpenses.map((expense) => (
             <button
               type="button"
               key={expense.id}
@@ -481,6 +482,122 @@ export default function GroupDetailPage() {
     queryFn: () => fetchGroup(groupId),
     enabled: Boolean(groupId),
   });
+
+  const costsSummary = useMemo(() => {
+    if (!data) return null;
+    const currency = data.expenses[0]?.currency || "USD";
+    const total = data.expenses.reduce((sum, expense) => {
+      const amount = Number(expense.amount);
+      return sum + (Number.isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(total);
+  }, [data]);
+
+  const paymentsSummary = useMemo(() => {
+    if (!data) return null;
+    const currency = data.expenses[0]?.currency || "USD";
+    const paidTotal = data.expenses.reduce((sum, expense) => {
+      const paid = (expense.payments ?? []).reduce((sub, payment) => {
+        const amount = Number(payment.amount);
+        return sub + (Number.isNaN(amount) ? 0 : amount);
+      }, 0);
+      return sum + paid;
+    }, 0);
+
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(paidTotal);
+  }, [data]);
+
+  const costsPerPerson = useMemo(() => {
+    if (!data) return null;
+    const currency = data.expenses[0]?.currency || "USD";
+    const perParticipant = data.expenses.reduce<Record<string, number>>(
+      (acc, expense) => {
+        if (!expense.participantCosts) return acc;
+        Object.entries(expense.participantCosts).forEach(
+          ([memberId, value]) => {
+            const numeric = Number(value);
+            if (Number.isNaN(numeric)) return;
+            acc[memberId] = (acc[memberId] ?? 0) + numeric;
+          }
+        );
+        return acc;
+      },
+      {}
+    );
+
+    const entries = Object.entries(perParticipant).map(
+      ([memberId, amount]) => ({
+        memberId,
+        amount,
+      })
+    );
+
+    const formatter = (value: number) =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 2,
+      }).format(value);
+
+    return {
+      entries,
+      formatter,
+    };
+  }, [data]);
+
+  const paymentsPerPerson = useMemo(() => {
+    if (!data) return null;
+    const currency = data.expenses[0]?.currency || "USD";
+    const paidByMember = data.expenses.reduce<Record<string, number>>(
+      (acc, expense) => {
+        (expense.payments ?? []).forEach((payment) => {
+          const amount = Number(payment.amount);
+          if (Number.isNaN(amount)) return;
+          acc[payment.payerId] = (acc[payment.payerId] ?? 0) + amount;
+        });
+        return acc;
+      },
+      {}
+    );
+
+    const unpaidTotal = data.expenses.reduce((sum, expense) => {
+      const paid = (expense.payments ?? []).reduce((sub, payment) => {
+        const amount = Number(payment.amount);
+        return sub + (Number.isNaN(amount) ? 0 : amount);
+      }, 0);
+      const remaining = Number(expense.amount) - paid;
+      return sum + (Number.isNaN(remaining) ? 0 : Math.max(remaining, 0));
+    }, 0);
+
+    const entries = Object.entries(paidByMember).map(
+      ([memberId, amount]) => ({
+        memberId,
+        amount,
+      })
+    );
+
+    const formatter = (value: number) =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 2,
+      }).format(value);
+
+    return {
+      entries,
+      formatter,
+      unpaidTotal,
+    };
+  }, [data]);
 
   useEffect(() => {
     const updateIsMobile = () => {
@@ -547,10 +664,6 @@ export default function GroupDetailPage() {
                     <CardTitle className="text-2xl font-semibold">
                       {data.name}
                     </CardTitle>
-                    <CardDescription>
-                      Created {new Date(data.createdAt).toLocaleDateString()} ·
-                      Updated {new Date(data.updatedAt).toLocaleDateString()}
-                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{data.type}</Badge>
@@ -559,86 +672,196 @@ export default function GroupDetailPage() {
               </CardHeader>
             </Card>
 
-            <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr] lg:items-start">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Card className="border-muted bg-background">
+                <CardHeader className="space-y-0">
+                  <CardTitle>Costs</CardTitle>
+                  <p className="text-2xl font-semibold text-foreground tabular-nums">
+                    {costsSummary ?? "$0.00"}
+                  </p>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-muted bg-background">
+                <CardHeader className="space-y-0">
+                  <CardTitle>Payments</CardTitle>
+                  <p className="text-2xl font-semibold text-foreground tabular-nums">
+                    {paymentsSummary ?? "$0.00"}
+                  </p>
+                </CardHeader>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-muted bg-background gap-2">
+                <CardHeader>
+                  <CardTitle>Cost per person</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0">
+                  {costsPerPerson && costsPerPerson.entries.length ? (
+                    costsPerPerson.entries
+                      .sort((a, b) => b.amount - a.amount)
+                      .map(({ memberId, amount }) => {
+                        const name =
+                          data.members.find((m) => m.id === memberId)
+                            ?.displayName ?? memberId;
+                        return (
+                          <div
+                            key={memberId}
+                            className="flex items-center justify-between rounded-md bg-muted/20 pr-3 pl-0 py-0.5 text-sm"
+                          >
+                            <span className="text-foreground">{name}</span>
+                            <span className="font-semibold tabular-nums">
+                              {costsPerPerson.formatter(amount)}
+                            </span>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No participant costs yet.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted bg-background gap-2">
+                <CardHeader>
+                  <CardTitle>Paid per person</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0">
+                  {paymentsPerPerson && paymentsPerPerson.entries.length ? (
+                    paymentsPerPerson.entries
+                      .sort((a, b) => b.amount - a.amount)
+                      .map(({ memberId, amount }) => {
+                        const name =
+                          data.members.find((m) => m.id === memberId)
+                            ?.displayName ?? memberId;
+                        return (
+                          <div
+                            key={memberId}
+                            className="flex items-center justify-between rounded-md bg-muted/20 pr-3 pl-0 py-0.5 text-sm"
+                          >
+                            <span className="text-foreground">{name}</span>
+                            <span className="font-semibold tabular-nums">
+                              {paymentsPerPerson.formatter(amount)}
+                            </span>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No payments recorded yet.
+                    </p>
+                  )}
+                  {paymentsPerPerson &&
+                  paymentsPerPerson.unpaidTotal > 0 &&
+                  paymentsPerPerson.entries.length ? (
+                    <div className="mt-2 flex items-center justify-end gap-1 pr-3 text-xs text-muted-foreground">
+                      <span>Unpaid total:</span>
+                      <span className="tabular-nums">
+                        {paymentsPerPerson.formatter(
+                          paymentsPerPerson.unpaidTotal
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <NetBalancesCard group={data} />
               <div className="space-y-4">
-                <GroupCostsCard group={data} />
-                <PaymentsCard group={data} />
-                <NetBalancesCard group={data} />
-                <GroupMembers
+                <GroupExpenses
                   group={{
                     ...data,
-                    _toggleAddMember: handleAddMember,
+                    _toggleAddExpense: handleAddExpense,
                   }}
-                />
-              </div>
-              <GroupExpenses
-                group={{
-                  ...data,
-                  _toggleAddExpense: handleAddExpense,
-                }}
-                actionsSlot={
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleAddExpense}
-                    >
-                      Add
-                    </Button>
-                    {isMobileOrTablet ? (
+                  actionsSlot={
+                    <div className="flex items-center gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setShowInlineUpload(true);
-                          setAutoOpenUploadPicker(true);
-                          requestAnimationFrame(() => {
-                            uploadCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        onClick={handleAddExpense}
+                      >
+                        Add
+                      </Button>
+                      {isMobileOrTablet ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setShowInlineUpload(true);
+                            setAutoOpenUploadPicker(true);
+                            requestAnimationFrame(() => {
+                              uploadCardRef.current?.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                              });
+                            });
+                          }}
+                        >
+                          Upload
+                        </Button>
+                      ) : (
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/groups/${data.id}/uploads`}>
+                            Upload
+                          </Link>
+                        </Button>
+                      )}
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/groups/${data.id}/expenses`}>
+                          View all {data.expenses.length}
+                        </Link>
+                      </Button>
+                    </div>
+                  }
+                  onSelectExpense={(expense) => {
+                    router.push(`/groups/${groupId}/expenses/${expense.id}`);
+                  }}
+                />
+                {isMobileOrTablet && showInlineUpload ? (
+                  <Card
+                    ref={uploadCardRef}
+                    className="border-muted bg-muted/20"
+                  >
+                    <CardHeader>
+                      <CardTitle>Upload a receipt</CardTitle>
+                      <CardDescription>
+                        Take a photo or choose from your library, then confirm
+                        before uploading.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <UploadExpenseSection
+                        groupId={groupId}
+                        autoOpenPicker={autoOpenUploadPicker}
+                        onCancel={() => {
+                          setShowInlineUpload(false);
+                          setAutoOpenUploadPicker(false);
+                        }}
+                        onCreated={() => {
+                          setShowInlineUpload(false);
+                          setAutoOpenUploadPicker(false);
+                          queryClient.invalidateQueries({
+                            queryKey: ["group", groupId],
                           });
                         }}
-                      >
-                        Upload
-                      </Button>
-                    ) : (
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/groups/${data.id}/uploads`}>Upload</Link>
-                      </Button>
-                    )}
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/groups/${data.id}/expenses`}>View all</Link>
-                    </Button>
-                  </div>
-                }
-                onSelectExpense={(expense) => {
-                  router.push(`/groups/${groupId}/expenses/${expense.id}`);
-                }}
-              />
-              {isMobileOrTablet && showInlineUpload ? (
-                <Card ref={uploadCardRef} className="border-muted bg-muted/20">
-                  <CardHeader>
-                    <CardTitle>Upload a receipt</CardTitle>
-                    <CardDescription>
-                      Take a photo or choose from your library, then confirm before uploading.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <UploadExpenseSection
-                      groupId={groupId}
-                      autoOpenPicker={autoOpenUploadPicker}
-                      onCancel={() => {
-                        setShowInlineUpload(false);
-                        setAutoOpenUploadPicker(false);
-                      }}
-                      onCreated={() => {
-                        setShowInlineUpload(false);
-                        setAutoOpenUploadPicker(false);
-                        queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-              ) : null}
+                      />
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
             </div>
+
+            <GroupMembers
+              group={{
+                ...data,
+                _toggleAddMember: handleAddMember,
+              }}
+            />
           </div>
         ) : null}
       </AppShell>
