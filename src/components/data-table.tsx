@@ -43,23 +43,28 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                    className="cursor-pointer select-none"
-                  >
-                    {header.isPlaceholder ? null : (
-                      <div className="flex items-center gap-1">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {{
-                          asc: "↑",
-                          desc: "↓",
-                        }[header.column.getIsSorted() as string] ?? null}
-                      </div>
-                    )}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const responsiveClass =
+                    (header.column.columnDef.meta as { className?: string } | undefined)?.className ??
+                    "";
+                  return (
+                    <TableHead
+                      key={header.id}
+                      onClick={header.column.getToggleSortingHandler()}
+                      className={`cursor-pointer select-none ${responsiveClass}`}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div className="flex items-center gap-1">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: "↑",
+                            desc: "↓",
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+                      )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
@@ -67,9 +72,16 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const responsiveClass =
+                      (cell.column.columnDef.meta as { className?: string } | undefined)?.className ??
+                      "";
+                    return (
+                      <TableCell key={cell.id} className={responsiveClass}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (
@@ -95,22 +107,35 @@ export function DataTable<TData>({ columns, data, pageSize = 10, footerRenderers
           ) : null}
         </Table>
       </div>
-      <div className="flex items-center justify-end gap-2">
-        <button
-          className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </button>
-        <button
-          className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </button>
-      </div>
+      {data.length > pageSize ? (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            Showing {table.getState().pagination.pageIndex * pageSize + 1} to{" "}
+            {Math.min((table.getState().pagination.pageIndex + 1) * pageSize, data.length)} out of{" "}
+            {data.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              className={`rounded-md border px-3 py-1 text-sm transition ${
+                table.getCanPreviousPage() ? "font-semibold text-foreground" : "disabled:opacity-50"
+              }`}
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </button>
+            <button
+              className={`rounded-md border px-3 py-1 text-sm transition ${
+                table.getCanNextPage() ? "font-semibold text-foreground" : "disabled:opacity-50"
+              }`}
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

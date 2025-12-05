@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/layout/app-shell";
@@ -38,7 +44,11 @@ const columns: ColumnDef<ExpenseRow>[] = [
       </div>
     ),
     accessorKey: "name",
-    cell: ({ row }) => <span className="font-medium text-foreground">{row.getValue("name")}</span>,
+    cell: ({ row }) => (
+      <span className="font-medium text-foreground">
+        {row.getValue("name")}
+      </span>
+    ),
   },
   {
     header: ({ column }) => (
@@ -71,10 +81,19 @@ const columns: ColumnDef<ExpenseRow>[] = [
     ),
     accessorKey: "status",
     cell: ({ row }) => (
-      <Badge variant={row.original.status === "PAID" ? "default" : row.original.status === "REIMBURSED" ? "secondary" : "outline"}>
+      <Badge
+        variant={
+          row.original.status === "PAID"
+            ? "default"
+            : row.original.status === "REIMBURSED"
+            ? "secondary"
+            : "outline"
+        }
+      >
         {(row.getValue("status") as string)?.toLowerCase()}
       </Badge>
     ),
+    meta: { className: "hidden sm:table-cell" },
   },
   {
     header: ({ column }) => (
@@ -87,6 +106,7 @@ const columns: ColumnDef<ExpenseRow>[] = [
     ),
     accessorKey: "splitLabel",
     cell: ({ row }) => row.getValue<string>("splitLabel"),
+    meta: { className: "hidden sm:table-cell" },
   },
   {
     header: ({ column }) => (
@@ -99,6 +119,7 @@ const columns: ColumnDef<ExpenseRow>[] = [
     ),
     accessorKey: "splitDetail",
     cell: ({ row }) => row.getValue<string>("splitDetail"),
+    meta: { className: "hidden sm:table-cell" },
   },
 ];
 
@@ -120,7 +141,10 @@ export default function GroupExpensesTablePage() {
     return data.expenses
       .map((expense) => {
         const participantIds = expense.participants.map((p) => p.memberId);
-        if (participantFilter !== "all" && !participantIds.includes(participantFilter)) {
+        if (
+          participantFilter !== "all" &&
+          !participantIds.includes(participantFilter)
+        ) {
           return null;
         }
 
@@ -135,7 +159,12 @@ export default function GroupExpensesTablePage() {
           displayAmount: share,
           currency: expense.currency || "USD",
           status: expense.status,
-          splitLabel: expense.splitType === "PERCENT" ? "Percentage" : expense.splitType === "SHARES" ? "Shares" : "Even",
+          splitLabel:
+            expense.splitType === "PERCENT"
+              ? "Percentage"
+              : expense.splitType === "SHARES"
+              ? "Shares"
+              : "Even",
           splitDetail: expense.participants
             .map((p) => {
               const memberName = memberMap.get(p.memberId) ?? p.memberId;
@@ -156,7 +185,11 @@ export default function GroupExpensesTablePage() {
   const footerRenderers = useMemo(
     () => ({
       displayAmount: () => {
-        const total = rows.reduce((sum, row) => sum + (Number.isFinite(row.displayAmount) ? row.displayAmount : 0), 0);
+        const total = rows.reduce(
+          (sum, row) =>
+            sum + (Number.isFinite(row.displayAmount) ? row.displayAmount : 0),
+          0
+        );
         const currency = rows[0]?.currency || "USD";
         return (
           <div className="font-semibold">
@@ -169,22 +202,27 @@ export default function GroupExpensesTablePage() {
         );
       },
     }),
-    [rows],
+    [rows]
   );
   const actionColumn: ColumnDef<ExpenseRow> = {
     header: "Actions",
     id: "actions",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" asChild>
-          <a href={`/groups/${groupId}/expenses/${row.original.id}`}>View</a>
-        </Button>
+        <Link
+          href={`/groups/${groupId}/expenses/${row.original.id}`}
+          className="text-sm font-medium text-primary underline underline-offset-4"
+        >
+          View
+        </Link>
         <Button
           size="sm"
           variant="ghost"
           className="text-destructive"
           onClick={async () => {
-            const confirmed = window.confirm("Delete this expense? This cannot be undone.");
+            const confirmed = window.confirm(
+              "Delete this expense? This cannot be undone."
+            );
             if (confirmed) {
               await deleteExpense(row.original.id);
               router.refresh();
@@ -209,9 +247,13 @@ export default function GroupExpensesTablePage() {
         ) : error ? (
           <Card className="border-destructive/30 bg-destructive/10">
             <CardHeader>
-              <CardTitle className="text-destructive">Unable to load expenses</CardTitle>
+              <CardTitle className="text-destructive">
+                Unable to load expenses
+              </CardTitle>
               <CardDescription className="text-destructive">
-                {error instanceof Error ? error.message : "Please try again later."}
+                {error instanceof Error
+                  ? error.message
+                  : "Please try again later."}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -224,16 +266,19 @@ export default function GroupExpensesTablePage() {
               <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
               <span>Back to {data.name}</span>
             </Link>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold">Group expenses</h1>
+              <p className="text-sm text-muted-foreground">
+                Sortable view of all expenses. Filter by participant to see
+                their owed amounts.
+              </p>
+            </div>
             <Card className="border-muted bg-background">
-              <CardHeader>
-                <CardTitle>Expenses table</CardTitle>
-                <CardDescription>
-                  Sortable view of all expenses. Filter by participant to see their owed amounts.
-                </CardDescription>
-              </CardHeader>
               <CardContent>
                 <div className="mb-4 flex items-center gap-2">
-                  <label className="text-sm text-muted-foreground">Filter by participant</label>
+                  <label className="text-sm text-muted-foreground">
+                    Filter by participant
+                  </label>
                   <select
                     value={participantFilter}
                     onChange={(e) => setParticipantFilter(e.target.value)}
@@ -247,7 +292,11 @@ export default function GroupExpensesTablePage() {
                     ))}
                   </select>
                 </div>
-                <DataTable columns={tableColumns} data={rows} footerRenderers={footerRenderers} />
+                <DataTable
+                  columns={tableColumns}
+                  data={rows}
+                  footerRenderers={footerRenderers}
+                />
               </CardContent>
             </Card>
           </div>
