@@ -176,9 +176,6 @@ function GroupMembers({ group }: { group: GroupWithHandlers }) {
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle>Members</CardTitle>
-          <CardDescription>
-            Everyone who can participate in expenses.
-          </CardDescription>
         </div>
         <Button size="sm" variant="secondary" onClick={group._toggleAddMember}>
           + Add
