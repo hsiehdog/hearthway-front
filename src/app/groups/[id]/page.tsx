@@ -711,12 +711,6 @@ export default function GroupDetailPage() {
           >
             <X className="h-4 w-4" />
           </Button>
-          <CardHeader className="space-y-1 px-3 py-2">
-            <CardTitle>Add an expense</CardTitle>
-            <CardDescription>
-              Log a cost and choose who participated.
-            </CardDescription>
-          </CardHeader>
           <CardContent className="px-3 pb-6 pt-2">
             <CreateExpenseForm
               groupId={groupId}
