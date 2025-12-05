@@ -31,8 +31,8 @@ export default function LoginPage() {
             Sign in to track shared costs with Hearthway
           </h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Sessions are backed by Better Auth&apos;s secure cookies, so your browser forwards credentials automatically.
-            Use the dashboard to log expenses, view balances, and settle confidently.
+            Use the dashboard to log expenses, view balances, and settle
+            confidently.
           </p>
         </div>
 

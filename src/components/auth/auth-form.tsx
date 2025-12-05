@@ -19,9 +19,7 @@ import { authClient } from "@/lib/auth/client";
 
 const baseSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
-  password: z
-    .string()
-    .min(8, "Passwords must include at least 8 characters."),
+  password: z.string().min(8, "Passwords must include at least 8 characters."),
 });
 
 const signUpSchema = baseSchema.extend({
@@ -46,13 +44,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   });
 
   const formTitle =
-    mode === "login"
-      ? "Welcome back"
-      : "Create an account for Hearthway";
+    mode === "login" ? "Welcome back" : "Create an account for Hearthway";
   const formDescription =
     mode === "login"
       ? "Sign in to review balances, manage projects or trips, and keep everyone synced."
-      : "Kick-start your space for shared expenses. Better Auth keeps your credentials safe by default.";
+      : "Kick-start your space for shared expenses.";
 
   const primaryAction = mode === "login" ? "Sign in" : "Create account";
   const secondaryCta =
@@ -60,9 +56,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       ? { href: "/signup", label: "Need an account? Sign up" }
       : { href: "/login", label: "Already have an account? Sign in" };
 
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ): void => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = event.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
@@ -175,10 +169,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           {error ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Passwords are stored using Better Auth&apos;s secure hashing
-              defaults.
-            </p>
+            <p className="text-sm text-muted-foreground"></p>
           )}
 
           <Button className="w-full" type="submit" disabled={isPending}>

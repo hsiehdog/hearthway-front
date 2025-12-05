@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, SendHorizontal } from "lucide-react";
 
 import { ChatMessageBubble } from "@/components/chat/chat-message";
@@ -33,22 +29,17 @@ export function ChatPanel() {
   const queryClient = useQueryClient();
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
-  const {
-    data: messages = [],
-    isPending,
-  } = useQuery({
+  const { data: messages = [], isPending } = useQuery({
     queryKey: ["chat"],
     queryFn: () => fetchChatHistory(),
     enabled: isAuthenticated,
   });
 
   const mutation = useMutation({
-    mutationFn: (payload: { text: string }) =>
-      sendChatMessage(payload.text),
+    mutationFn: (payload: { text: string }) => sendChatMessage(payload.text),
     onMutate: async ({ text }) => {
       await queryClient.cancelQueries({ queryKey: ["chat"] });
-      const previous =
-        queryClient.getQueryData<ChatMessage[]>(["chat"]) || [];
+      const previous = queryClient.getQueryData<ChatMessage[]>(["chat"]) || [];
 
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -66,11 +57,10 @@ export function ChatPanel() {
         isOptimistic: true,
       };
 
-      queryClient.setQueryData<ChatMessage[]>(["chat"], [
-        ...previous,
-        userMessage,
-        assistantPlaceholder,
-      ]);
+      queryClient.setQueryData<ChatMessage[]>(
+        ["chat"],
+        [...previous, userMessage, assistantPlaceholder]
+      );
 
       setMessage("");
 
@@ -89,7 +79,7 @@ export function ChatPanel() {
               entry.role === "assistant" &&
               entry.isOptimistic &&
               entry.content === "Thinking…"
-            ),
+            )
         );
         const hydratedResponse: ChatMessage = {
           id: crypto.randomUUID(),
@@ -120,7 +110,7 @@ export function ChatPanel() {
       <CardHeader>
         <CardTitle>Chat with your Hearthway guide</CardTitle>
         <CardDescription>
-          Ask for balances, who owes what, or how to split a new receipt. Requests automatically reuse your Better Auth session cookie.
+          Ask for balances, who owes what, or how to split a new receipt.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -140,7 +130,10 @@ export function ChatPanel() {
           </div>
         </ScrollArea>
 
-        <form className="flex flex-col gap-3 md:flex-row" onSubmit={handleSubmit}>
+        <form
+          className="flex flex-col gap-3 md:flex-row"
+          onSubmit={handleSubmit}
+        >
           <Textarea
             placeholder="Ask for a trip balance, suggest a fair split, or draft settlement steps…"
             value={message}

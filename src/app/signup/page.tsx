@@ -31,7 +31,7 @@ export default function SignupPage() {
             Start a Hearthway space for your group
           </h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Create your workspace, invite neighbors or travelers, and wire Better Auth into the backend to keep sessions secure.
+            Create your workspace and invite neighbors or fellow travelers.
           </p>
         </div>
 
