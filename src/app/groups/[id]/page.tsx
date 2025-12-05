@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/layout/app-shell";
@@ -386,12 +392,10 @@ export default function GroupDetailPage() {
       return sum + (Number.isNaN(remaining) ? 0 : Math.max(remaining, 0));
     }, 0);
 
-    const entries = Object.entries(paidByMember).map(
-      ([memberId, amount]) => ({
-        memberId,
-        amount,
-      })
-    );
+    const entries = Object.entries(paidByMember).map(([memberId, amount]) => ({
+      memberId,
+      amount,
+    }));
 
     const formatter = (value: number) =>
       new Intl.NumberFormat("en-US", {
@@ -466,21 +470,85 @@ export default function GroupDetailPage() {
         ) : data ? (
           <div className="space-y-6">
             <Card className="border-muted bg-gradient-to-br from-background via-background to-muted/60">
-              <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="space-y-1">
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
                     <CardTitle className="text-2xl font-semibold">
                       {data.name}
                     </CardTitle>
-                  </div>
-                  <div className="flex items-center gap-2">
                     <Badge variant="secondary">{data.type}</Badge>
                   </div>
                 </div>
+                <div className="hidden items-center gap-2 sm:flex">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/groups/${data.id}/uploads`}>
+                      Scan expense
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddExpense}
+                  >
+                    Add expense
+                  </Button>
+                </div>
               </CardHeader>
             </Card>
+            {isMobileOrTablet && !showInlineUpload ? (
+              <div className="grid grid-cols-2 gap-2 sm:hidden">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setShowInlineUpload(true);
+                    setAutoOpenUploadPicker(true);
+                    requestAnimationFrame(() => {
+                      uploadCardRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    });
+                  }}
+                >
+                  Scan expense
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleAddExpense}>
+                  Add expense
+                </Button>
+              </div>
+            ) : null}
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {isMobileOrTablet && showInlineUpload ? (
+              <Card ref={uploadCardRef} className="border-muted bg-muted/20">
+                <CardHeader>
+                  <CardTitle>Scan expense</CardTitle>
+                  <CardDescription>
+                    Upload a photo of a receipt to create an expense.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <UploadExpenseSection
+                    groupId={groupId}
+                    autoOpenPicker={autoOpenUploadPicker}
+                    onCancel={() => {
+                      setShowInlineUpload(false);
+                      setAutoOpenUploadPicker(false);
+                    }}
+                    onCreated={() => {
+                      setShowInlineUpload(false);
+                      setAutoOpenUploadPicker(false);
+                      queryClient.invalidateQueries({
+                        queryKey: ["group", groupId],
+                      });
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
+
+            <div className="grid grid-cols-2 gap-4">
               <Card className="border-muted bg-background">
                 <CardHeader className="space-y-0">
                   <CardTitle>Costs</CardTitle>
@@ -587,80 +655,17 @@ export default function GroupDetailPage() {
                     _toggleAddExpense: handleAddExpense,
                   }}
                   actionsSlot={
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleAddExpense}
-                      >
-                        Add
-                      </Button>
-                      {isMobileOrTablet ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setShowInlineUpload(true);
-                            setAutoOpenUploadPicker(true);
-                            requestAnimationFrame(() => {
-                              uploadCardRef.current?.scrollIntoView({
-                                behavior: "smooth",
-                                block: "start",
-                              });
-                            });
-                          }}
-                        >
-                          Upload
-                        </Button>
-                      ) : (
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/groups/${data.id}/uploads`}>
-                            Upload
-                          </Link>
-                        </Button>
-                      )}
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/groups/${data.id}/expenses`}>
-                          View all {data.expenses.length}
-                        </Link>
-                      </Button>
-                    </div>
+                    <Link
+                      href={`/groups/${data.id}/expenses`}
+                      className="text-sm font-medium text-primary underline underline-offset-4"
+                    >
+                      View all {data.expenses.length}
+                    </Link>
                   }
                   onSelectExpense={(expense) => {
                     router.push(`/groups/${groupId}/expenses/${expense.id}`);
                   }}
                 />
-                {isMobileOrTablet && showInlineUpload ? (
-                  <Card
-                    ref={uploadCardRef}
-                    className="border-muted bg-muted/20"
-                  >
-                    <CardHeader>
-                      <CardTitle>Upload a receipt</CardTitle>
-                      <CardDescription>
-                        Take a photo or choose from your library, then confirm
-                        before uploading.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <UploadExpenseSection
-                        groupId={groupId}
-                        autoOpenPicker={autoOpenUploadPicker}
-                        onCancel={() => {
-                          setShowInlineUpload(false);
-                          setAutoOpenUploadPicker(false);
-                        }}
-                        onCreated={() => {
-                          setShowInlineUpload(false);
-                          setAutoOpenUploadPicker(false);
-                          queryClient.invalidateQueries({
-                            queryKey: ["group", groupId],
-                          });
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                ) : null}
               </div>
             </div>
 

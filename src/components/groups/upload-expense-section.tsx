@@ -2,11 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Expense, UploadedExpense, requestUploadUrl, completeUpload, fetchExpense } from "@/lib/api-client";
+import {
+  Expense,
+  UploadedExpense,
+  requestUploadUrl,
+  completeUpload,
+  fetchExpense,
+} from "@/lib/api-client";
 
 type Props = {
   groupId: string;
@@ -16,14 +23,41 @@ type Props = {
   uploads?: UploadedExpense[];
 };
 
-export function UploadExpenseSection({ groupId, onCreated, onCancel, autoOpenPicker, uploads }: Props) {
+export function UploadExpenseSection({
+  groupId,
+  onCreated,
+  onCancel,
+  autoOpenPicker,
+  uploads,
+}: Props) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   const defaultInputRef = useRef<HTMLInputElement | null>(null);
   const mobileLibraryInputRef = useRef<HTMLInputElement | null>(null);
   const [autoOpened, setAutoOpened] = useState(false);
+  const [status, setStatus] = useState<"idle" | "uploading" | "parsing" | "ready" | "error">(
+    "idle"
+  );
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const progressForStatus = (currentStatus: typeof status) => {
+    if (currentStatus === "uploading") return 30;
+    if (currentStatus === "parsing") return 65;
+    if (currentStatus === "ready") return 100;
+    if (currentStatus === "error") return 100;
+    return 0;
+  };
+
+  const statusLabel = () =>
+    status === "uploading"
+      ? "Uploading"
+      : status === "parsing"
+      ? "Parsing"
+      : status === "ready"
+      ? "Ready"
+      : "Error";
 
   useEffect(() => {
     const updateIsMobile = () => {
@@ -63,11 +97,11 @@ export function UploadExpenseSection({ groupId, onCreated, onCancel, autoOpenPic
 
   const acceptTypes = isMobileOrTablet ? "image/*" : ".pdf,.doc,.docx,image/*";
   useEffect(() => {
-    if (autoOpenPicker && isMobileOrTablet && !autoOpened && !file) {
+    if (autoOpenPicker && isMobileOrTablet && !autoOpened && !file && status === "idle") {
       mobileLibraryInputRef.current?.click();
       setAutoOpened(true);
     }
-  }, [autoOpenPicker, isMobileOrTablet, autoOpened, file]);
+  }, [autoOpenPicker, isMobileOrTablet, autoOpened, file, status]);
   useEffect(() => {
     if (!autoOpenPicker) {
       setAutoOpened(false);
@@ -104,13 +138,21 @@ export function UploadExpenseSection({ groupId, onCreated, onCancel, autoOpenPic
     setPreviewUrl(null);
     setFile(null);
     onCancel?.();
+    setStatus("idle");
+    setStatusMessage(null);
   };
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("File is required");
+      setStatus("uploading");
+      setStatusMessage(null);
 
-      const presign = await requestUploadUrl(groupId, file.name, file.type || "application/octet-stream");
+      const presign = await requestUploadUrl(
+        groupId,
+        file.name,
+        file.type || "application/octet-stream"
+      );
       const putResp = await fetch(presign.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type || "application/octet-stream" },
@@ -120,93 +162,176 @@ export function UploadExpenseSection({ groupId, onCreated, onCancel, autoOpenPic
         throw new Error("Failed to upload file");
       }
       await completeUpload(presign.upload.id);
-      return fetchExpense(presign.expenseId);
+      setStatus("parsing");
+      return presign.expenseId;
     },
-    onSuccess: async (expense) => {
-      setFile(null);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      setPreviewUrl(null);
+    onSuccess: async (expenseId) => {
       queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-      onCreated?.(expense);
-      onCancel?.();
+      pollExpense(expenseId);
+    },
+    onError: (error: any) => {
+      setStatus("error");
+      setStatusMessage(error?.message || "Upload failed.");
     },
   });
+
+  const pollExpense = async (expenseId: string, attempt = 0) => {
+    try {
+      const expense = await fetchExpense(expenseId);
+      const uploadsList = expense.uploads ?? [];
+      const parsingDone =
+        uploadsList.length === 0 ||
+        uploadsList.every(
+          (u) => u.parsingStatus && ["SUCCESS", "FAILED"].includes(u.parsingStatus)
+        );
+
+      if (parsingDone) {
+        setStatus("ready");
+        setStatusMessage("Parsed. Opening expense…");
+        onCreated?.(expense);
+        router.push(`/groups/${groupId}/expenses/${expense.id}`);
+        return;
+      }
+
+      if (attempt >= 23) {
+        setStatus("error");
+        setStatusMessage("Parsing is taking longer than expected. Please try again.");
+        return;
+      }
+
+      setStatus("parsing");
+      setTimeout(() => pollExpense(expenseId, attempt + 1), 1500);
+    } catch (error: any) {
+      if (attempt >= 23) {
+        setStatus("error");
+        setStatusMessage(error?.message || "Could not load expense.");
+        return;
+      }
+      setTimeout(() => pollExpense(expenseId, attempt + 1), 1500);
+    }
+  };
 
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label htmlFor="expenseUpload">
-          Upload receipt {isMobileOrTablet ? "(images only on mobile)" : "(PDF, doc, or image)"}
-        </Label>
-        {isMobileOrTablet ? (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => mobileLibraryInputRef.current?.click()}
-              >
-                Choose photo
-              </Button>
+        {status === "idle" || status === "error" ? (
+          isMobileOrTablet ? (
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  className="w-full"
+                  onClick={() => mobileLibraryInputRef.current?.click()}
+                >
+                  Choose photo
+                </Button>
+              </div>
+              <input
+                ref={mobileLibraryInputRef}
+                id="expenseUpload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
-            <input
-              ref={mobileLibraryInputRef}
+          ) : (
+            <Input
+              ref={defaultInputRef}
               id="expenseUpload"
               type="file"
-              accept="image/*"
-              className="hidden"
+              accept={acceptTypes}
+              capture={isMobileOrTablet ? "environment" : undefined}
               onChange={handleFileChange}
             />
-          </div>
-        ) : (
-          <Input
-            ref={defaultInputRef}
-            id="expenseUpload"
-            type="file"
-            accept={acceptTypes}
-            capture={isMobileOrTablet ? "environment" : undefined}
-            onChange={handleFileChange}
-          />
-        )}
-        {file ? <p className="text-xs text-muted-foreground">Selected: {file.name}</p> : null}
+          )
+        ) : null}
+        {file ? (
+          <p className="text-xs text-muted-foreground">Selected: {file.name}</p>
+        ) : null}
         {previewUrl ? (
           <div className="overflow-hidden rounded-md border bg-muted/20">
-            <img src={previewUrl} alt="Receipt preview" className="h-64 w-full object-contain" />
+            <img
+              src={previewUrl}
+              alt="Receipt preview"
+              className="h-64 w-full object-contain"
+            />
           </div>
         ) : null}
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => uploadMutation.mutate()}
-            disabled={!file || uploadMutation.isPending}
-          >
-            {uploadMutation.isPending ? "Uploading..." : "Upload"}
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={resetSelection} disabled={uploadMutation.isPending}>
-            Cancel
-          </Button>
-          {uploadMutation.error ? (
-            <p className="text-sm text-destructive">
-              {(uploadMutation.error as Error).message || "Upload failed."}
+        {status === "idle" || status === "error" ? (
+          <div className="flex items-center gap-3 justify-end">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => uploadMutation.mutate()}
+              disabled={!file || uploadMutation.isPending || status === "parsing"}
+            >
+              {uploadMutation.isPending ? "Uploading..." : "Upload"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={resetSelection}
+              disabled={uploadMutation.isPending || status === "parsing"}
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      {status !== "idle" ? (
+        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Status</span>
+            <span
+              className={`flex items-center gap-2 font-medium ${
+                status === "error" ? "text-destructive" : "text-foreground"
+              }`}
+            >
+              {(status === "uploading" || status === "parsing") && (
+                <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              )}
+              <span>{statusLabel()}</span>
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-muted">
+            <div
+              className={`h-2 rounded-full transition-all ${
+                status === "error" ? "bg-destructive" : "bg-primary"
+              }`}
+              style={{ width: `${progressForStatus(status)}%` }}
+            />
+          </div>
+          {statusMessage ? (
+            <p
+              className={`text-xs ${
+                status === "error" ? "text-destructive" : "text-muted-foreground"
+              }`}
+            >
+              {statusMessage}
             </p>
           ) : null}
-          {uploadMutation.isSuccess ? (
-            <p className="text-sm text-muted-foreground">Uploaded. Parsing to draft an expense.</p>
-          ) : null}
         </div>
-      </div>
+      ) : null}
 
       {uploads && uploads.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Existing uploads</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Existing uploads
+          </p>
           <ul className="space-y-2">
             {uploads.map((upload, index) => (
-              <li key={index} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                <span className="font-medium text-foreground">{upload.originalFileName}</span>
+              <li
+                key={index}
+                className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+              >
+                <span className="font-medium text-foreground">
+                  {upload.originalFileName}
+                </span>
                 {upload.signedUrl || upload.fileUrl ? (
                   <a
                     href={upload.signedUrl ?? upload.fileUrl}
