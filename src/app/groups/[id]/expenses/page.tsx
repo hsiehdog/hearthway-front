@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Expense, Group, deleteExpense, fetchGroup } from "@/lib/api-client";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type ExpenseRow = {
@@ -126,7 +125,6 @@ const columns: ColumnDef<ExpenseRow>[] = [
 export default function GroupExpensesTablePage() {
   const params = useParams<{ id: string }>();
   const groupId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [participantFilter, setParticipantFilter] = useState<string>("all");
 

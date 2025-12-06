@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 
 type DataTableProps<TData> = {
-  columns: ColumnDef<TData, any>[];
+  columns: ColumnDef<TData, unknown>[];
   data: TData[];
   pageSize?: number;
   footerRenderers?: Record<
@@ -36,6 +36,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

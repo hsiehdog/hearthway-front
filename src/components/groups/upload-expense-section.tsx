@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +8,6 @@ import { authClient } from "@/lib/auth/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Expense,
   UploadedExpense,
@@ -47,6 +47,8 @@ export function UploadExpenseSection({
     "idle" | "uploading" | "parsing" | "ready" | "error"
   >("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Something went wrong.";
   const progressForStatus = (currentStatus: typeof status) => {
     if (currentStatus === "uploading") return 30;
     if (currentStatus === "parsing") return 65;
@@ -110,12 +112,12 @@ export function UploadExpenseSection({
       status === "idle"
     ) {
       mobileLibraryInputRef.current?.click();
-      setAutoOpened(true);
+      window.setTimeout(() => setAutoOpened(true), 0);
     }
   }, [autoOpenPicker, isMobileOrTablet, autoOpened, file, status]);
   useEffect(() => {
     if (!autoOpenPicker) {
-      setAutoOpened(false);
+      window.setTimeout(() => setAutoOpened(false), 0);
     }
   }, [autoOpenPicker]);
   useEffect(() => {
@@ -180,9 +182,9 @@ export function UploadExpenseSection({
       queryClient.invalidateQueries({ queryKey: ["group", groupId] });
       pollExpense(expenseId);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setStatus("error");
-      setStatusMessage(error?.message || "Upload failed.");
+      setStatusMessage(getErrorMessage(error) || "Upload failed.");
     },
   });
 
@@ -213,10 +215,10 @@ export function UploadExpenseSection({
               paidAt: new Date().toISOString(),
             });
             queryClient.invalidateQueries({ queryKey: ["group", groupId] });
-          } catch (paymentError: any) {
+          } catch (paymentError: unknown) {
             setStatus("error");
             setStatusMessage(
-              paymentError?.message || "Could not record payment.",
+              getErrorMessage(paymentError) || "Could not record payment.",
             );
             return;
           }
@@ -236,10 +238,10 @@ export function UploadExpenseSection({
 
       setStatus("parsing");
       setTimeout(() => pollExpense(expenseId, attempt + 1), 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (attempt >= 23) {
         setStatus("error");
-        setStatusMessage(error?.message || "Could not load expense.");
+        setStatusMessage(getErrorMessage(error) || "Could not load expense.");
         return;
       }
       setTimeout(() => pollExpense(expenseId, attempt + 1), 1500);

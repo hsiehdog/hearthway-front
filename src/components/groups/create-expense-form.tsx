@@ -1,14 +1,20 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, DollarSign, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Group, createExpense, Expense, updateExpense } from "@/lib/api-client";
-import { useEffect } from "react";
 
 type Props = {
   groupId: string;
@@ -17,7 +23,7 @@ type Props = {
   asCard?: boolean;
   initialExpense?: Expense;
   onDelete?: (id: string) => Promise<void> | void;
-  paymentsSlot?: React.ReactNode;
+  paymentsSlot?: ReactNode;
 };
 
 type ParticipantState = Record<
@@ -55,7 +61,7 @@ export function CreateExpenseForm({
   const queryClient = useQueryClient();
   const [name, setName] = useState(initialExpense?.name ?? "");
   const [amount, setAmount] = useState(initialExpense?.amount ?? "");
-  const [currency, setCurrency] = useState(initialExpense?.currency ?? "USD");
+  const [currency] = useState(initialExpense?.currency ?? "USD");
   const [date, setDate] = useState(
     () =>
       initialExpense?.date?.slice(0, 10) ??
@@ -157,7 +163,6 @@ export function CreateExpenseForm({
     amount?: string;
     name?: string;
   }>({});
-  const [payerId] = useState<string>("");
 
   const percentError = useMemo(() => {
     if (splitType !== "PERCENT") return "";
@@ -220,17 +225,21 @@ export function CreateExpenseForm({
   };
 
   const addLineItem = () => {
-    setLineItems((prev) => [
-      ...prev,
-      {
-        id: generateId(),
-        description: "",
-        category: "",
-        quantity: "1",
-        unitAmount: "",
-        totalAmount: "",
-      },
-    ]);
+    setLineItems((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: generateId(),
+          description: "",
+          category: "",
+          quantity: "1",
+          unitAmount: "",
+          totalAmount: "",
+        },
+      ];
+      syncAmountFromLineItems(next);
+      return next;
+    });
   };
 
   const updateLineItem = (
@@ -238,75 +247,46 @@ export function CreateExpenseForm({
     field: keyof LineItemState,
     value: string,
   ) => {
-    setLineItems((prev) =>
-      prev.map((item) => {
+    setLineItems((prev) => {
+      const next = prev.map((item) => {
         if (item.id !== id) return item;
-        const next = { ...item, [field]: value };
+        const updated = { ...item, [field]: value };
         if (
           (field === "quantity" || field === "unitAmount") &&
-          next.quantity &&
-          next.unitAmount
+          updated.quantity &&
+          updated.unitAmount
         ) {
-          const maybeTotal = Number(next.quantity) * Number(next.unitAmount);
+          const maybeTotal =
+            Number(updated.quantity) * Number(updated.unitAmount);
           if (!Number.isNaN(maybeTotal)) {
-            next.totalAmount = maybeTotal.toFixed(2);
+            updated.totalAmount = maybeTotal.toFixed(2);
           }
         }
-        return next;
-      }),
-    );
+        return updated;
+      });
+      syncAmountFromLineItems(next);
+      return next;
+    });
   };
 
   const removeLineItem = (id: string) => {
-    setLineItems((prev) => prev.filter((item) => item.id !== id));
+    setLineItems((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      syncAmountFromLineItems(next);
+      return next;
+    });
   };
 
-  useEffect(() => {
-    if (lineItems.length === 0) return;
-    const total = lineItems.reduce((sum, item) => {
+  const syncAmountFromLineItems = (items: LineItemState[]) => {
+    if (items.length === 0) return;
+    const total = items.reduce((sum, item) => {
       const value = Number(item.totalAmount || 0);
       return sum + (Number.isNaN(value) ? 0 : value);
     }, 0);
     if (!Number.isNaN(total)) {
       setAmount(total.toFixed(2));
     }
-  }, [lineItems]);
-
-  useEffect(() => {
-    if (!initialExpense) return;
-    setAmount(initialExpense.amount ?? "");
-    setCurrency(initialExpense.currency ?? "USD");
-    setDate(
-      initialExpense.date?.slice(0, 10) ??
-        new Date().toISOString().slice(0, 10),
-    );
-    setName(initialExpense.name ?? "");
-    setDescription(initialExpense.description ?? "");
-    setSplitType(initialExpense.splitType ?? "EVEN");
-    setParticipants(() => {
-      const map: ParticipantState = {};
-      members.forEach((member) => {
-        const match = initialExpense.participants.find(
-          (p) => p.memberId === member.id,
-        );
-        map[member.id] = {
-          checked: Boolean(match),
-          shareAmount: match?.shareAmount ?? undefined,
-        };
-      });
-      return map;
-    });
-    setLineItems(
-      initialExpense.lineItems.map((item) => ({
-        id: item.id,
-        description: item.description ?? "",
-        category: item.category ?? "",
-        quantity: item.quantity ?? "1",
-        unitAmount: item.unitAmount ?? "",
-        totalAmount: item.totalAmount ?? "",
-      })),
-    );
-  }, [initialExpense, members]);
+  };
 
   const toNumber = (
     value: string | number | undefined,
@@ -394,10 +374,6 @@ export function CreateExpenseForm({
           </div>
         </div>
       </div>
-
-      {fieldErrors.description ? (
-        <p className="text-xs text-destructive">{fieldErrors.description}</p>
-      ) : null}
 
       <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
         <div className="flex items-center justify-between">

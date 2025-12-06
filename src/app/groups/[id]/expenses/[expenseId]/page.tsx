@@ -39,6 +39,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong";
+
 function formatCurrency(amount: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -283,8 +286,8 @@ export default function ExpenseDetailPage() {
                             queryKey: ["group", groupId],
                           });
                           window.history.back();
-                        } catch (err: any) {
-                          alert(err?.message ?? "Could not delete expense");
+                        } catch (err: unknown) {
+                          alert(getErrorMessage(err) ?? "Could not delete expense");
                         }
                       }}
                     >
@@ -457,6 +460,7 @@ export default function ExpenseDetailPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <CreateExpenseForm
+                  key={expense.id}
                   groupId={groupId}
                   members={group?.members ?? []}
                   initialExpense={expense}
@@ -578,8 +582,8 @@ function AddPaymentForm({
       });
       await onSaved();
     },
-    onError: (err: any) => {
-      setError(err?.message ?? "Could not save payment");
+    onError: (err: unknown) => {
+      setError(getErrorMessage(err));
     },
   });
 

@@ -39,6 +39,9 @@ type UploadEntry = {
   error?: string;
 };
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong";
+
 export default function UploadExpensesPage() {
   const params = useParams<{ id: string }>();
   const groupId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -84,12 +87,12 @@ export default function UploadExpensesPage() {
         pollExpense(expenseId, index);
       });
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setEntries((prev) =>
         prev.map((entry) => ({
           ...entry,
           status: "error",
-          error: err?.message ?? "Upload failed",
+          error: getErrorMessage(err) || "Upload failed",
         })),
       );
     },
@@ -149,7 +152,7 @@ export default function UploadExpensesPage() {
               paidAt: new Date().toISOString(),
             });
             expense = await fetchExpense(expenseId);
-          } catch (paymentError: any) {
+          } catch (paymentError: unknown) {
             setEntries((prev) =>
               prev.map((entry, idx) =>
                 idx === entryIndex
@@ -157,7 +160,8 @@ export default function UploadExpensesPage() {
                       ...entry,
                       status: "error",
                       error:
-                        paymentError?.message ?? "Could not record payment",
+                        getErrorMessage(paymentError) ??
+                        "Could not record payment",
                     }
                   : entry,
               ),
@@ -186,7 +190,7 @@ export default function UploadExpensesPage() {
         ),
       );
       setTimeout(() => pollExpense(expenseId, entryIndex, attempt + 1), 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (attempt > 3) {
         setEntries((prev) =>
           prev.map((entry, idx) =>
@@ -194,7 +198,7 @@ export default function UploadExpensesPage() {
               ? {
                   ...entry,
                   status: "error",
-                  error: error?.message ?? "Could not load expense",
+                  error: getErrorMessage(error) ?? "Could not load expense",
                 }
               : entry,
           ),
