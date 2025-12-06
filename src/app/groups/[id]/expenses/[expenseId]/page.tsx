@@ -15,7 +15,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2, X } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   Expense,
   ExpensePayment,
@@ -29,7 +29,13 @@ import {
 } from "@/lib/api-client";
 import { CreateExpenseForm } from "@/components/groups/create-expense-form";
 import { useEffect, useMemo, useState } from "react";
-import { Dialog } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -408,75 +414,64 @@ export default function ExpenseDetailPage() {
 
             <Dialog
               open={showPaymentModal}
-              onClose={() => {
-                setShowPaymentModal(false);
-                setPaymentToEdit(null);
+              onOpenChange={(open) => {
+                setShowPaymentModal(open);
+                if (!open) setPaymentToEdit(null);
               }}
             >
-              <Card className="relative border-none shadow-lg">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 z-20"
-                  onClick={() => {
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {paymentToEdit ? "Edit payment" : "Add payment"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Record who paid and when for this expense.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddPaymentForm
+                  expense={expense}
+                  group={group}
+                  payment={paymentToEdit ?? undefined}
+                  onClose={() => {
                     setShowPaymentModal(false);
                     setPaymentToEdit(null);
                   }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <CardContent className="space-y-4 px-3 pb-6 pt-2">
-                  <AddPaymentForm
-                    expense={expense}
-                    group={group}
-                    payment={paymentToEdit ?? undefined}
-                    onClose={() => {
-                      setShowPaymentModal(false);
-                      setPaymentToEdit(null);
-                    }}
-                    onSaved={async () => {
-                      setShowPaymentModal(false);
-                      setPaymentToEdit(null);
-                    }}
-                    submitLabel={
-                      paymentToEdit ? "Update payment" : "Add payment"
-                    }
-                  />
-                </CardContent>
-              </Card>
+                  onSaved={async () => {
+                    setShowPaymentModal(false);
+                    setPaymentToEdit(null);
+                  }}
+                  submitLabel={paymentToEdit ? "Update payment" : "Add payment"}
+                />
+              </DialogContent>
             </Dialog>
 
             <Dialog
               open={showEditExpense}
-              onClose={() => setShowEditExpense(false)}
+              onOpenChange={setShowEditExpense}
             >
-              <Card className="relative max-h-[90vh] overflow-y-auto border-none shadow-lg">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 z-20"
-                  onClick={() => setShowEditExpense(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <CardContent className="px-3 pb-6 pt-1">
-                  <CreateExpenseForm
-                    groupId={groupId}
-                    members={group?.members ?? []}
-                    initialExpense={expense}
-                    asCard={false}
-                    onSuccess={async () => {
-                      await queryClient.invalidateQueries({
-                        queryKey: ["expense", expense.id],
-                      });
-                      await queryClient.invalidateQueries({
-                        queryKey: ["group", groupId],
-                      });
-                      setShowEditExpense(false);
-                    }}
-                  />
-                </CardContent>
-              </Card>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit expense</DialogTitle>
+                  <DialogDescription>
+                    Update the amount, participants, or notes for this expense.
+                  </DialogDescription>
+                </DialogHeader>
+                <CreateExpenseForm
+                  groupId={groupId}
+                  members={group?.members ?? []}
+                  initialExpense={expense}
+                  asCard={false}
+                  onSuccess={async () => {
+                    await queryClient.invalidateQueries({
+                      queryKey: ["expense", expense.id],
+                    });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["group", groupId],
+                    });
+                    setShowEditExpense(false);
+                  }}
+                />
+              </DialogContent>
             </Dialog>
           </div>
         )}

@@ -16,7 +16,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Group, fetchGroups } from "@/lib/api-client";
 
 export default function GroupsPage() {
@@ -111,32 +117,17 @@ export default function GroupsPage() {
           )}
         </div>
 
-        {showModal ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
-            <div className="relative w-full max-w-2xl">
-              <Card className="border-muted bg-background shadow-2xl">
-                <CardHeader className="flex flex-row items-start justify-between">
-                  <div>
-                    <CardTitle>Create a group</CardTitle>
-                    <CardDescription>
-                      Spin up a project or trip for shared expenses.
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Close
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <CreateGroupForm onCreated={handleCreated} />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        ) : null}
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create a group</DialogTitle>
+              <DialogDescription>
+                Spin up a project or trip for shared expenses.
+              </DialogDescription>
+            </DialogHeader>
+            <CreateGroupForm onCreated={handleCreated} />
+          </DialogContent>
+        </Dialog>
       </AppShell>
     </ProtectedRoute>
   );

@@ -16,10 +16,15 @@ import { AppShell } from "@/components/layout/app-shell";
 import { CreateExpenseForm } from "@/components/groups/create-expense-form";
 import { AddMemberForm } from "@/components/groups/add-member-form";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Expense, Group, fetchGroup } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 
@@ -674,47 +679,33 @@ export default function GroupDetailPage() {
         ) : null}
       </AppShell>
 
-      <Dialog open={showAddMember} onClose={() => setShowAddMember(false)}>
-        <Card className="relative border-none shadow-none">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2 z-20"
-            onClick={() => setShowAddMember(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <CardHeader className="space-y-1 px-3 py-2">
-            <CardTitle>Add a member</CardTitle>
-            <CardDescription>
+      <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add a member</DialogTitle>
+            <DialogDescription>
               Invite someone new for future expenses.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AddMemberForm groupId={groupId} />
-          </CardContent>
-        </Card>
+            </DialogDescription>
+          </DialogHeader>
+          <AddMemberForm groupId={groupId} />
+        </DialogContent>
       </Dialog>
 
-      <Dialog open={showAddExpense} onClose={() => setShowAddExpense(false)}>
-        <Card className="relative border-none shadow-none max-h-[90vh] overflow-y-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2 z-20"
-            onClick={() => setShowAddExpense(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <CardContent className="px-3 pb-6 pt-2">
-            <CreateExpenseForm
-              groupId={groupId}
-              members={data?.members ?? []}
-              onSuccess={() => setShowAddExpense(false)}
-              asCard={false}
-            />
-          </CardContent>
-        </Card>
+      <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add an expense</DialogTitle>
+            <DialogDescription>
+              Track a shared cost for your group.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateExpenseForm
+            groupId={groupId}
+            members={data?.members ?? []}
+            onSuccess={() => setShowAddExpense(false)}
+            asCard={false}
+          />
+        </DialogContent>
       </Dialog>
     </ProtectedRoute>
   );
