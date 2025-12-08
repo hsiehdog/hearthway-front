@@ -100,7 +100,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           }
         }
 
-        router.push("/dashboard");
+        router.push("/groups");
         router.refresh();
       } catch (submissionError) {
         if (submissionError instanceof Error) {

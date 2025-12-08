@@ -31,7 +31,7 @@ export default function LoginPage() {
             Sign in to track shared costs with Hearthway
           </h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Use the dashboard to log expenses, view balances, and settle
+            Use Hearthway to log expenses, view balances, and settle
             confidently.
           </p>
         </div>

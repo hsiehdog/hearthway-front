@@ -35,7 +35,7 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-Visit `http://localhost:3000` for the marketing page, `/signup` or `/login` for auth, `/dashboard` for the protected dashboard, and `/groups` for the expense features.
+Visit `http://localhost:3000` for the marketing page, `/signup` or `/login` for auth, and `/dashboard` as the default hub for group/expense features.
 
 ## Environment
 
@@ -46,13 +46,13 @@ Create `.env.local` with:
 | `NEXT_PUBLIC_APP_URL`        | Public URL for the frontend (used in links and fallbacks).                                                                                                 |
 | `NEXT_PUBLIC_AUTH_BASE_URL`  | Backend origin that hosts Better Auth (e.g., `http://localhost:4000`).                                                                                     |
 | `NEXT_PUBLIC_AUTH_BASE_PATH` | Better Auth path on the backend (defaults to `/auth`).                                                                                                     |
-| `NEXT_PUBLIC_API_BASE_URL`   | Backend API origin for expense data. When unset, dashboard + chat use mock data. Requests include cookies, so enable CORS with credentials on the backend. |
+| `NEXT_PUBLIC_API_BASE_URL`   | Backend API origin for expense data. When unset, UI surfaces use mock data. Requests include cookies, so enable CORS with credentials on the backend. |
 
 ## Architecture notes
 
 - `src/lib/auth/client.ts` provides auth hooks/actions bound to Better Auth.
 - `src/lib/api-client.ts` centralizes backend calls and forwards session cookies; falls back to mocks when no API base URL is set.
-- Group/expense UI lives under `src/app/groups/*` with shared components in `src/components/groups`.
+- Group/expense UI lives under `src/app/dashboard` (list) and `src/app/groups/*` for detail, with shared components in `src/components/groups`.
 - React Query provider is in `src/components/providers.tsx` for shared caching.
 
 ## Scripts

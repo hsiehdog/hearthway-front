@@ -3,7 +3,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, PanelLeftClose, PanelLeftOpen, User } from "lucide-react";
+import { Users, PanelLeftClose, PanelLeftOpen, User, Home } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,6 @@ type AppShellProps = {
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/groups", label: "Groups", icon: Users },
   { href: "/account", label: "Account", icon: User },
 ];
 
