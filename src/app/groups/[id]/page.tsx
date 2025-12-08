@@ -27,6 +27,46 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Expense, Group, fetchGroup } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
+import { getMemberEmail, getMemberName } from "@/lib/members";
+
+const formatDateOnly = (value?: string | null) => {
+  if (!value) return { label: "", month: "", day: "", year: NaN };
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(value);
+  if (!match) return { label: value, month: "", day: "", year: NaN };
+  const [, y, m, d] = match;
+  const date = new Date(`${y}-${m}-${d}T00:00:00Z`);
+  return {
+    year: Number(y),
+    month: date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
+    day: date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" }),
+    label: date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
+  };
+};
+
+const formatDateRange = (start?: string | null, end?: string | null, fallback?: string) => {
+  if (!start) return fallback ?? "";
+  const startParts = formatDateOnly(start);
+  if (!end) return startParts.label;
+
+  const endParts = formatDateOnly(end);
+  const sameYear = startParts.year === endParts.year;
+  const sameMonth = sameYear && startParts.month === endParts.month;
+
+  if (sameYear && sameMonth) {
+    return `${startParts.month} ${startParts.day}-${endParts.day}, ${startParts.year}`;
+  }
+
+  if (sameYear) {
+    return `${startParts.month} ${startParts.day} - ${endParts.month} ${endParts.day}, ${startParts.year}`;
+  }
+
+  return `${startParts.month} ${startParts.day}, ${startParts.year} - ${endParts.month} ${endParts.day}, ${endParts.year}`;
+};
 
 function formatAmount(expense: Expense) {
   const value = Number(expense.amount);
@@ -478,7 +518,11 @@ export default function GroupDetailPage() {
                     <CardTitle className="text-2xl font-semibold">
                       {data.name}
                     </CardTitle>
-                    <Badge variant="secondary">{data.type}</Badge>
+                    <Badge variant="secondary" className="text-xs font-medium">
+                      {data.startDate
+                        ? formatDateRange(data.startDate, data.endDate)
+                        : data.type}
+                    </Badge>
                   </div>
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">

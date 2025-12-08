@@ -28,9 +28,46 @@ import { createGroup } from "@/lib/api-client";
 
 const formatDateOnly = (value: string) => {
   const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(value);
-  if (!match) return value;
+  if (!match) {
+    return { year: NaN, month: "", day: "", label: value };
+  }
   const [, y, m, d] = match;
-  return `${m}/${d}/${y}`;
+  const date = new Date(`${y}-${m}-${d}T00:00:00Z`);
+  return {
+    year: Number(y),
+    month: date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
+    day: date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" }),
+    label: date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
+  };
+};
+
+const formatDateRange = (start?: string | null, end?: string | null, fallback?: string) => {
+  if (!start) {
+    return fallback ?? "";
+  }
+
+  const startParts = formatDateOnly(start);
+  if (!end) return startParts.label;
+
+  const endParts = formatDateOnly(end);
+
+  const sameYear = startParts.year === endParts.year;
+  const sameMonth = sameYear && startParts.month === endParts.month;
+
+  if (sameYear && sameMonth) {
+    return `${startParts.month} ${startParts.day}-${endParts.day}, ${startParts.year}`;
+  }
+
+  if (sameYear) {
+    return `${startParts.month} ${startParts.day} - ${endParts.month} ${endParts.day}, ${startParts.year}`;
+  }
+
+  return `${startParts.month} ${startParts.day}, ${startParts.year} - ${endParts.month} ${endParts.day}, ${endParts.year}`;
 };
 
 export default function DashboardPage() {
@@ -129,8 +166,8 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs">
                                   {group.startDate
-                                    ? `${formatDateOnly(group.startDate)}${group.endDate ? ` - ${formatDateOnly(group.endDate)}` : ""}`
-                                    : `Updated ${formatDateOnly(group.updatedAt)}`}
+                                    ? formatDateRange(group.startDate, group.endDate)
+                                    : `Updated ${formatDateOnly(group.updatedAt).label}`}
                                 </span>
                               </CardDescription>
                             </CardHeader>
@@ -163,8 +200,8 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs">
                                   {group.startDate
-                                    ? `${formatDateOnly(group.startDate)}${group.endDate ? ` - ${formatDateOnly(group.endDate)}` : ""}`
-                                    : `Updated ${formatDateOnly(group.updatedAt)}`}
+                                    ? formatDateRange(group.startDate, group.endDate)
+                                    : `Updated ${formatDateOnly(group.updatedAt).label}`}
                                 </span>
                               </CardDescription>
                             </CardHeader>
