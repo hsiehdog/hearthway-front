@@ -26,20 +26,36 @@ import { Input } from "@/components/ui/input";
 import { Group, fetchGroups } from "@/lib/api-client";
 import { createGroup } from "@/lib/api-client";
 
+const formatDateOnly = (value: string) => {
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(value);
+  if (!match) return value;
+  const [, y, m, d] = match;
+  return `${m}/${d}/${y}`;
+};
+
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [showTripModal, setShowTripModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [tripName, setTripName] = useState("");
+  const [tripStart, setTripStart] = useState("");
+  const [tripEnd, setTripEnd] = useState("");
+  const [tripLocation, setTripLocation] = useState("");
   const [projectName, setProjectName] = useState("");
   const createTrip = useMutation({
     mutationFn: () =>
       createGroup({
         name: tripName.trim(),
         type: "TRIP",
+        startDate: tripStart || undefined,
+        endDate: tripEnd || undefined,
+        location: tripLocation || undefined,
       }),
     onSuccess: () => {
       setTripName("");
+      setTripStart("");
+      setTripEnd("");
+      setTripLocation("");
       setShowTripModal(false);
       queryClient.invalidateQueries({ queryKey: ["groups"] });
     },
@@ -109,10 +125,12 @@ export default function DashboardPage() {
                               <CardTitle>{group.name}</CardTitle>
                               <CardDescription className="flex items-center justify-between">
                                 <span className="uppercase tracking-wide text-xs">
-                                  {group.type}
+                                  {group.primaryLocation || group.type}
                                 </span>
                                 <span className="text-xs">
-                                  Updated {new Date(group.updatedAt).toLocaleDateString()}
+                                  {group.startDate
+                                    ? `${formatDateOnly(group.startDate)}${group.endDate ? ` - ${formatDateOnly(group.endDate)}` : ""}`
+                                    : `Updated ${formatDateOnly(group.updatedAt)}`}
                                 </span>
                               </CardDescription>
                             </CardHeader>
@@ -141,10 +159,12 @@ export default function DashboardPage() {
                               <CardTitle>{group.name}</CardTitle>
                               <CardDescription className="flex items-center justify-between">
                                 <span className="uppercase tracking-wide text-xs">
-                                  {group.type}
+                                  {group.primaryLocation || group.type}
                                 </span>
                                 <span className="text-xs">
-                                  Updated {new Date(group.updatedAt).toLocaleDateString()}
+                                  {group.startDate
+                                    ? `${formatDateOnly(group.startDate)}${group.endDate ? ` - ${formatDateOnly(group.endDate)}` : ""}`
+                                    : `Updated ${formatDateOnly(group.updatedAt)}`}
                                 </span>
                               </CardDescription>
                             </CardHeader>
@@ -248,6 +268,41 @@ export default function DashboardPage() {
                   value={tripName}
                   onChange={(event) => setTripName(event.target.value)}
                   required
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="trip-start" className="text-sm font-medium">
+                    Start date
+                  </label>
+                  <Input
+                    id="trip-start"
+                    type="date"
+                    value={tripStart}
+                    onChange={(event) => setTripStart(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="trip-end" className="text-sm font-medium">
+                    End date
+                  </label>
+                  <Input
+                    id="trip-end"
+                    type="date"
+                    value={tripEnd}
+                    onChange={(event) => setTripEnd(event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="trip-location" className="text-sm font-medium">
+                  Location
+                </label>
+                <Input
+                  id="trip-location"
+                  placeholder="City, region, or venue"
+                  value={tripLocation}
+                  onChange={(event) => setTripLocation(event.target.value)}
                 />
               </div>
               {createTrip.error ? (

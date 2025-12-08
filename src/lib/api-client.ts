@@ -110,6 +110,9 @@ export type Group = {
   id: string;
   name: string;
   type: "PROJECT" | "TRIP";
+  startDate?: string | null;
+  endDate?: string | null;
+  primaryLocation?: string | null;
   members: GroupMember[];
   expenses: Expense[];
   createdAt: string;
@@ -375,8 +378,9 @@ export async function changeUserPassword(
 export type CreateGroupPayload = {
   name: string;
   type?: Group["type"];
-  memberDisplayName?: string;
-  memberEmail?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
 };
 
 export async function createGroup(payload: CreateGroupPayload): Promise<Group> {
@@ -387,12 +391,18 @@ export async function createGroup(payload: CreateGroupPayload): Promise<Group> {
       id: crypto.randomUUID(),
       name: payload.name,
       type: payload.type ?? "PROJECT",
+      startDate: payload.startDate ?? null,
+      endDate: payload.endDate ?? null,
+      primaryLocation: payload.location ?? null,
       members: [
         {
           id: crypto.randomUUID(),
           userId: "mock-user",
-          displayName: payload.memberDisplayName || "You",
-          email: payload.memberEmail || "you@example.com",
+          user: {
+            id: "mock-user",
+            name: "You",
+            email: "you@example.com",
+          },
         },
       ],
       expenses: [],
