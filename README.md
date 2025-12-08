@@ -1,33 +1,45 @@
 # Hearthway Frontend
 
-Hearthway makes it effortless for groups to log shared expenses, attach receipts, apply flexible splits, and settle up cleanly. Two modes support different workflows:
+Hearthway lets groups track shared expenses with flexible splits, receipts, and payments. This package is the Next.js App Router frontend that talks to the Hearthway backend via session cookies.
 
-- **Project Mode:** Neighbors, families, clubs, or small teams can track repairs or group purchases and get transparent, even/percentage/share-based splits plus settlement suggestions.
-- **Trip Mode:** Travel-friendly expense capture with participation-based splits, multi-currency handling, light itinerary sharing, and an end-of-trip settlement plan.
+## Feature set (implemented)
 
-This package is the Next.js App Router frontend that pairs with the Hearthway backend for auth, expense data, and settlement flows.
+- Authentication and session handling via Better Auth (`/signup`, `/login`).
+- Groups index with creation modal; group members inherit the logged-in user identity.
+- Group detail with:
+  - Net balance summary, cost per person, paid per person.
+  - Recent expenses list and full expenses table.
+  - Add member flow (by email) and member roster display.
+- Expense flows:
+  - Create/update expenses with even/percent/share splits, line items, participant selection.
+  - Record payments against an expense and view payment totals.
+  - Expense detail pages with participant costs and line items.
+- Receipt uploads:
+  - Single upload with presigned URLs and auto-payment for the current user.
+  - Batch scan flow that polls parsing status and auto-pays for the current user when possible.
+- Dashboard scaffolding with mocked analytics/chat when `NEXT_PUBLIC_API_BASE_URL` is unset.
 
 ## Tech stack
 
-- Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui
-- Better Auth client wired to the backend for session-cookie auth
-- React Query for data fetching/cache; chat + dashboard scaffolding ready to bind to expense endpoints
-- Mocked data fallback when API URLs are not configured, so the UI can run without live services
+- Next.js 16 (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+- Better Auth client for cookie-based auth
+- React Query for data fetching and cache
+- Mocked data fallback if `NEXT_PUBLIC_API_BASE_URL` is missing
 
 ## Getting started
 
 ```bash
 pnpm install
 cp .env.example .env.local
-# Update the env values to point at the backend (default http://localhost:4000 with /auth)
+# Update env values to point at the backend (default http://localhost:4000 with /auth)
 pnpm dev
 ```
 
-Visit `http://localhost:3000` for the marketing page, `/signup` or `/login` for auth, and `/dashboard` for the protected dashboard (currently seeded with mocked analytics/chat until you plug in real APIs).
+Visit `http://localhost:3000` for the marketing page, `/signup` or `/login` for auth, `/dashboard` for the protected dashboard, and `/groups` for the expense features.
 
 ## Environment
 
-Create `.env.local` with the following:
+Create `.env.local` with:
 
 | Variable                     | Description                                                                                                                                                |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -38,10 +50,10 @@ Create `.env.local` with the following:
 
 ## Architecture notes
 
-- `src/lib/auth/client.ts` points to the backend Better Auth instance and exposes hooks/actions (`authClient.useSession`, `authClient.signIn.email`, etc.).
-- `src/lib/api-client.ts` centralizes backend calls and forwards the session cookie (`credentials: "include"`). If `NEXT_PUBLIC_API_BASE_URL` is missing, it returns mocked dashboard/chat data for local UI work.
-- `src/components` contains shadcn UI primitives plus dashboard, auth, layout, and chat building blocks that can be retargeted to Hearthway’s expense entities.
-- React Query is provided in `src/components/providers.tsx` to share caches across the dashboard and chat surfaces.
+- `src/lib/auth/client.ts` provides auth hooks/actions bound to Better Auth.
+- `src/lib/api-client.ts` centralizes backend calls and forwards session cookies; falls back to mocks when no API base URL is set.
+- Group/expense UI lives under `src/app/groups/*` with shared components in `src/components/groups`.
+- React Query provider is in `src/components/providers.tsx` for shared caching.
 
 ## Scripts
 
@@ -51,9 +63,3 @@ Create `.env.local` with the following:
 | `pnpm build` | Create a production build    |
 | `pnpm start` | Run the built app            |
 | `pnpm lint`  | Run ESLint                   |
-
-## Next steps for Hearthway
-
-- Replace mock dashboard/chat data with expense, receipt, and settlement endpoints from the backend.
-- Map Project Mode and Trip Mode surfaces onto the dashboard layout (e.g., separate tabs for home repairs vs. trips, itinerary panels, settlement suggestions).
-- Wire receipts upload and multi-currency handling to real services once those APIs land in the backend.
