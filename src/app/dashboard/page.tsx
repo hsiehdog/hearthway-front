@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { CreateGroupForm } from "@/components/groups/create-group-form";
 import { AppShell } from "@/components/layout/app-shell";
 import {
   Card,
@@ -23,37 +22,62 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Group, fetchGroups } from "@/lib/api-client";
+import { createGroup } from "@/lib/api-client";
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
-  const [showModal, setShowModal] = useState(false);
+  const [showTripModal, setShowTripModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [tripName, setTripName] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const createTrip = useMutation({
+    mutationFn: () =>
+      createGroup({
+        name: tripName.trim(),
+        type: "TRIP",
+      }),
+    onSuccess: () => {
+      setTripName("");
+      setShowTripModal(false);
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+  const createProject = useMutation({
+    mutationFn: () =>
+      createGroup({
+        name: projectName.trim(),
+        type: "PROJECT",
+      }),
+    onSuccess: () => {
+      setProjectName("");
+      setShowProjectModal(false);
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
   const { data, isPending, error } = useQuery<Group[]>({
     queryKey: ["groups"],
     queryFn: () => fetchGroups(),
   });
 
-  const handleCreated = () => {
-    setShowModal(false);
-    queryClient.invalidateQueries({ queryKey: ["groups"] });
+  const handleCreateProject = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!projectName.trim()) return;
+    createProject.mutate();
+  };
+
+  const handleCreateTrip = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!tripName.trim()) return;
+    createTrip.mutate();
   };
 
   return (
     <ProtectedRoute>
       <AppShell>
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold">Groups</h1>
-              <p className="text-sm text-muted-foreground">
-                Projects and trips you belong to.
-              </p>
-            </div>
-            <Button onClick={() => setShowModal(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create new group
-            </Button>
-          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3" />
 
           {isPending ? (
             <div className="flex min-h-40 items-center justify-center">
@@ -71,59 +95,227 @@ export default function DashboardPage() {
               </CardHeader>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {data?.length ? (
-                data.map((group) => (
-                  <Link key={group.id} href={`/groups/${group.id}`}>
-                    <Card className="h-full border-muted bg-background transition hover:-translate-y-0.5 hover:shadow-md">
-                      <CardHeader>
-                        <CardTitle>{group.name}</CardTitle>
-                        <CardDescription className="flex items-center justify-between">
-                          <span className="uppercase tracking-wide text-xs">
-                            {group.type}
-                          </span>
-                          <span className="text-xs">
-                            Updated {new Date(group.updatedAt).toLocaleDateString()}
-                          </span>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="text-sm text-muted-foreground">
-                        {group.members.length} member
-                        {group.members.length === 1 ? "" : "s"} · {group.expenses.length} expense
-                        {group.expenses.length === 1 ? "" : "s"}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))
-              ) : (
-                <Card className="border-muted bg-muted/30">
-                  <CardHeader>
-                    <CardTitle>No groups yet</CardTitle>
-                    <CardDescription>
-                      Start with a project for household/club expenses or a trip
-                      for flexible splits.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => setShowModal(true)}>
-                      Create your first group
-                    </Button>
+            <div className="space-y-6">
+              {data?.some((g) => g.type === "TRIP") ? (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold">Trips</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {data
+                      .filter((g) => g.type === "TRIP")
+                      .map((group) => (
+                        <Link key={group.id} href={`/groups/${group.id}`}>
+                          <Card className="h-full border-muted bg-background transition hover:-translate-y-0.5 hover:shadow-md">
+                            <CardHeader>
+                              <CardTitle>{group.name}</CardTitle>
+                              <CardDescription className="flex items-center justify-between">
+                                <span className="uppercase tracking-wide text-xs">
+                                  {group.type}
+                                </span>
+                                <span className="text-xs">
+                                  Updated {new Date(group.updatedAt).toLocaleDateString()}
+                                </span>
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-sm text-muted-foreground">
+                              {group.members.length} member
+                              {group.members.length === 1 ? "" : "s"} · {group.expenses.length} expense
+                              {group.expenses.length === 1 ? "" : "s"}
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {data?.some((g) => g.type === "PROJECT") ? (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold">Projects</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {data
+                      .filter((g) => g.type === "PROJECT")
+                      .map((group) => (
+                        <Link key={group.id} href={`/groups/${group.id}`}>
+                          <Card className="h-full border-muted bg-background transition hover:-translate-y-0.5 hover:shadow-md">
+                            <CardHeader>
+                              <CardTitle>{group.name}</CardTitle>
+                              <CardDescription className="flex items-center justify-between">
+                                <span className="uppercase tracking-wide text-xs">
+                                  {group.type}
+                                </span>
+                                <span className="text-xs">
+                                  Updated {new Date(group.updatedAt).toLocaleDateString()}
+                                </span>
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-sm text-muted-foreground">
+                              {group.members.length} member
+                              {group.members.length === 1 ? "" : "s"} · {group.expenses.length} expense
+                              {group.expenses.length === 1 ? "" : "s"}
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <Card className="border-muted bg-muted/20">
+                  <CardContent className="space-y-3 py-1">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl">✈️ Plan a New Trip</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Build your itinerary, track expenses as you go, and stay
+                        organized without the stress.
+                      </p>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <span>Flights, hotels, meals & activities</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <span>Upload receipts during the trip</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <span>Automatic shared balances</span>
+                      </li>
+                    </ul>
+                    <div className="flex justify-end">
+                      <Button onClick={() => setShowTripModal(true)}>
+                        Plan a New Trip
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
+
+                <Card className="border-muted bg-muted/20">
+                  <CardContent className="space-y-3 py-1">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl">
+                        🏗 Organize a New Project
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Track every cost, receipt, and payment from start to
+                        finish—no spreadsheets needed.
+                      </p>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <span>Materials, labor, invoices & fees</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <span>Upload receipts & vendor bills</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <span>Real-time project spending</span>
+                      </li>
+                    </ul>
+                    <div className="flex justify-end">
+                      <Button onClick={() => setShowProjectModal(true)}>
+                        Organize a New Project
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </div>
 
-        <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogContent className="max-w-2xl">
+        <Dialog open={showTripModal} onOpenChange={setShowTripModal}>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Create a group</DialogTitle>
+              <DialogTitle>Plan a new trip</DialogTitle>
               <DialogDescription>
-                Spin up a project or trip for shared expenses.
+                Create a shared or solo trip to organize your itinerary, upload receipts as you go, and keep everyone's spending in sync.
               </DialogDescription>
             </DialogHeader>
-            <CreateGroupForm onCreated={handleCreated} />
+            <form className="space-y-4" onSubmit={handleCreateTrip}>
+              <div className="space-y-2">
+                <label htmlFor="trip-name" className="text-sm font-medium">
+                  Trip name
+                </label>
+                <Input
+                  id="trip-name"
+                  placeholder="Summer in Italy, Austin Conference, Family Ski Trip"
+                  value={tripName}
+                  onChange={(event) => setTripName(event.target.value)}
+                  required
+                />
+              </div>
+              {createTrip.error ? (
+                <p className="text-sm text-destructive">
+                  {createTrip.error instanceof Error
+                    ? createTrip.error.message
+                    : "Could not create trip."}
+                </p>
+              ) : null}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowTripModal(false)}
+                  disabled={createTrip.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createTrip.isPending}>
+                  {createTrip.isPending ? "Creating..." : "Create Trip"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showProjectModal} onOpenChange={setShowProjectModal}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Organize a new project</DialogTitle>
+              <DialogDescription>
+                Track every cost, receipt, and payment from start to finish.
+              </DialogDescription>
+            </DialogHeader>
+            <form className="space-y-4" onSubmit={handleCreateProject}>
+              <div className="space-y-2">
+                <label htmlFor="project-name" className="text-sm font-medium">
+                  Project Name
+                </label>
+                <Input
+                  id="project-name"
+                  placeholder="Kitchen renovation, school fundraiser, HOA expenses"
+                  value={projectName}
+                  onChange={(event) => setProjectName(event.target.value)}
+                  required
+                />
+              </div>
+              {createProject.error ? (
+                <p className="text-sm text-destructive">
+                  {createProject.error instanceof Error
+                    ? createProject.error.message
+                    : "Could not create project."}
+                </p>
+              ) : null}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowProjectModal(false)}
+                  disabled={createProject.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createProject.isPending}>
+                  {createProject.isPending ? "Creating..." : "Create Project"}
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       </AppShell>

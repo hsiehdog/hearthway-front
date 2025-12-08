@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hearthway",
   description:
-    "Shared expenses made simple—track repairs or trips, split costs fairly, and settle up with clarity.",
+    "Hearthway helps you plan trips and organize projects with shared itineraries, receipts, and real-time expense tracking—solo or with a group.",
 };
 
 export default function RootLayout({
