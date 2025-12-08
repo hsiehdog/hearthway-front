@@ -67,6 +67,7 @@ export function CreateExpenseForm({
       initialExpense?.date?.slice(0, 10) ??
       new Date().toISOString().slice(0, 10)
   );
+  const [vendor, setVendor] = useState(initialExpense?.vendor ?? "");
   const [description, setDescription] = useState(
     initialExpense?.description ?? ""
   );
@@ -113,6 +114,7 @@ export function CreateExpenseForm({
         currency,
         date,
         name,
+        vendor: vendor || undefined,
         description: description || undefined,
         splitType,
         participants: Object.entries(participants)
@@ -314,6 +316,21 @@ export function CreateExpenseForm({
           ) : null}
         </div>
         <div className="space-y-2">
+          <Label htmlFor="vendor">Vendor</Label>
+          <Input
+            id="vendor"
+            value={vendor}
+            onChange={(event) => setVendor(event.target.value)}
+            placeholder="e.g., Home Depot, Delta, Blue Bottle"
+          />
+          <p className="text-xs text-muted-foreground">
+            Add the merchant/store/restaurant to keep receipts organized.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 md:items-end">
+        <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <Input
             id="description"
@@ -322,6 +339,7 @@ export function CreateExpenseForm({
             placeholder="Add context about this expense"
           />
         </div>
+        <div className="space-y-2"></div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr] md:items-end">

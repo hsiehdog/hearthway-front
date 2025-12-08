@@ -95,6 +95,7 @@ export type Expense = {
   currency: string;
   date: string;
   name: string;
+  vendor?: string | null;
   description?: string | null;
   splitType: "EVEN" | "PERCENT" | "SHARES";
   participants: ExpenseParticipant[];
@@ -461,6 +462,7 @@ export type CreateExpensePayload = {
   currency?: string;
   date?: string;
   name: string;
+  vendor?: string;
   description?: string;
   splitType: Expense["splitType"];
   participants?: { memberId: string; shareAmount?: number }[];
@@ -486,6 +488,7 @@ export async function createExpense(
       currency: payload.currency || "USD",
       date: payload.date || now,
       name: payload.name,
+      vendor: payload.vendor ?? undefined,
       description: payload.description,
       splitType: payload.splitType,
       status: payload.status,

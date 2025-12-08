@@ -25,6 +25,7 @@ import { useState } from "react";
 type ExpenseRow = {
   id: string;
   name: string;
+  vendor?: string | null;
   displayAmount: number;
   currency: string;
   status: Expense["status"];
@@ -48,6 +49,23 @@ const columns: ColumnDef<ExpenseRow>[] = [
         {row.getValue("name")}
       </span>
     ),
+  },
+  {
+    header: ({ column }) => (
+      <div
+        className="flex cursor-pointer select-none items-center"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Vendor
+      </div>
+    ),
+    accessorKey: "vendor",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {row.getValue("vendor") || "—"}
+      </span>
+    ),
+    meta: { className: "hidden sm:table-cell" },
   },
   {
     header: ({ column }) => (
@@ -155,6 +173,7 @@ export default function GroupExpensesTablePage() {
         return {
           id: expense.id,
           name: expense.name || "Expense",
+          vendor: expense.vendor ?? "",
           displayAmount: share,
           currency: expense.currency || "USD",
           status: expense.status,

@@ -138,6 +138,11 @@ export default function ExpenseDetailPage() {
                   {expense.description ? (
                     <CardDescription>{expense.description}</CardDescription>
                   ) : null}
+                  {expense.vendor ? (
+                    <p className="text-sm text-muted-foreground">
+                      Vendor: {expense.vendor}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="text-right space-y-1">
                   <div className="flex items-center justify-end gap-2">
