@@ -48,20 +48,20 @@ function NetBalancesCard({ group }: { group: Group }) {
   const summary = useMemo(() => {
     const currency = group.expenses[0]?.currency || "USD";
     const expensesWithPayments = group.expenses.filter(
-      (expense) => (expense.payments?.length ?? 0) > 0,
+      (expense) => (expense.payments?.length ?? 0) > 0
     );
     const totalPayments = expensesWithPayments.reduce(
       (sum, expense) =>
         sum +
         (expense.payments ?? []).reduce(
           (sub, payment) => sub + Number(payment.amount || 0),
-          0,
+          0
         ),
-      0,
+      0
     );
     const totalExpenseAmount = expensesWithPayments.reduce(
       (sum, expense) => sum + Number(expense.amount || 0),
-      0,
+      0
     );
 
     const paidByMember = expensesWithPayments.reduce<Record<string, number>>(
@@ -73,7 +73,7 @@ function NetBalancesCard({ group }: { group: Group }) {
         });
         return acc;
       },
-      {},
+      {}
     );
 
     const owedByMember = expensesWithPayments.reduce<Record<string, number>>(
@@ -81,13 +81,13 @@ function NetBalancesCard({ group }: { group: Group }) {
         const expenseTotal = Number(expense.amount);
         const totalPaid = (expense.payments ?? []).reduce(
           (sum, p) => sum + Number(p.amount || 0),
-          0,
+          0
         );
         expense.participants.forEach((participant) => {
           const fullShare = Number(
             expense.participantCosts?.[participant.memberId] ??
               participant.shareAmount ??
-              0,
+              0
           );
           if (Number.isNaN(fullShare)) return;
           const ratio = expenseTotal > 0 ? fullShare / expenseTotal : 0;
@@ -97,7 +97,7 @@ function NetBalancesCard({ group }: { group: Group }) {
         });
         return acc;
       },
-      {},
+      {}
     );
 
     const allMemberIds = new Set([
@@ -225,9 +225,9 @@ function GroupExpenses({
       [...group.expenses].sort(
         (a, b) =>
           new Date(b.createdAt || b.date).getTime() -
-          new Date(a.createdAt || a.date).getTime(),
+          new Date(a.createdAt || a.date).getTime()
       ),
-    [group.expenses],
+    [group.expenses]
   );
   const recentExpenses = sortedExpenses.slice(0, 3);
 
@@ -343,18 +343,18 @@ export default function GroupDetailPage() {
             const numeric = Number(value);
             if (Number.isNaN(numeric)) return;
             acc[memberId] = (acc[memberId] ?? 0) + numeric;
-          },
+          }
         );
         return acc;
       },
-      {},
+      {}
     );
 
     const entries = Object.entries(perParticipant).map(
       ([memberId, amount]) => ({
         memberId,
         amount,
-      }),
+      })
     );
 
     const formatter = (value: number) =>
@@ -382,7 +382,7 @@ export default function GroupDetailPage() {
         });
         return acc;
       },
-      {},
+      {}
     );
 
     const unpaidTotal = data.expenses.reduce((sum, expense) => {
@@ -637,7 +637,7 @@ export default function GroupDetailPage() {
                       <span>Unpaid total:</span>
                       <span className="tabular-nums">
                         {paymentsPerPerson.formatter(
-                          paymentsPerPerson.unpaidTotal,
+                          paymentsPerPerson.unpaidTotal
                         )}
                       </span>
                     </div>

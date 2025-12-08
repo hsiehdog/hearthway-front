@@ -65,20 +65,20 @@ export function CreateExpenseForm({
   const [date, setDate] = useState(
     () =>
       initialExpense?.date?.slice(0, 10) ??
-      new Date().toISOString().slice(0, 10),
+      new Date().toISOString().slice(0, 10)
   );
   const [description, setDescription] = useState(
-    initialExpense?.description ?? "",
+    initialExpense?.description ?? ""
   );
   const [splitType, setSplitType] = useState<"EVEN" | "PERCENT" | "SHARES">(
-    initialExpense?.splitType ?? "EVEN",
+    initialExpense?.splitType ?? "EVEN"
   );
   const [participants, setParticipants] = useState<ParticipantState>(() => {
     if (initialExpense) {
       const map: ParticipantState = {};
       members.forEach((member) => {
         const match = initialExpense.participants.find(
-          (p) => p.memberId === member.id,
+          (p) => p.memberId === member.id
         );
         map[member.id] = {
           checked: Boolean(match),
@@ -102,7 +102,7 @@ export function CreateExpenseForm({
           unitAmount: item.unitAmount ?? "",
           totalAmount: item.totalAmount ?? "",
         }))
-      : [],
+      : []
   );
 
   const mutation = useMutation({
@@ -156,7 +156,7 @@ export function CreateExpenseForm({
 
   const selectedCount = useMemo(
     () => Object.values(participants).filter((p) => p.checked).length,
-    [participants],
+    [participants]
   );
   const [participantError, setParticipantError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
@@ -171,7 +171,7 @@ export function CreateExpenseForm({
       .reduce(
         (sum, [, value]) =>
           sum + (value.shareAmount ? Number(value.shareAmount) : 0),
-        0,
+        0
       );
     return Math.round(totalPercent) === 100
       ? ""
@@ -183,7 +183,7 @@ export function CreateExpenseForm({
     const invalidShare = Object.entries(participants)
       .filter(([, value]) => value.checked)
       .some(
-        ([, value]) => !value.shareAmount || Number(value.shareAmount) <= 0,
+        ([, value]) => !value.shareAmount || Number(value.shareAmount) <= 0
       );
     return invalidShare ? "All shares must be greater than 0" : "";
   }, [participants, splitType]);
@@ -245,7 +245,7 @@ export function CreateExpenseForm({
   const updateLineItem = (
     id: string,
     field: keyof LineItemState,
-    value: string,
+    value: string
   ) => {
     setLineItems((prev) => {
       const next = prev.map((item) => {
@@ -290,7 +290,7 @@ export function CreateExpenseForm({
 
   const toNumber = (
     value: string | number | undefined,
-    fallback: number,
+    fallback: number
   ): number => {
     if (value === "" || value === undefined) return fallback;
     const parsed = typeof value === "number" ? value : Number(value);
@@ -534,7 +534,7 @@ export function CreateExpenseForm({
             size="sm"
             onClick={() => {
               const ok = window.confirm(
-                "Delete this expense? This cannot be undone.",
+                "Delete this expense? This cannot be undone."
               );
               if (ok) {
                 onDelete(initialExpense.id);
