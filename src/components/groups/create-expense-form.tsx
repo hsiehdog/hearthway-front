@@ -323,9 +323,6 @@ export function CreateExpenseForm({
             onChange={(event) => setVendor(event.target.value)}
             placeholder="e.g., Home Depot, Delta, Blue Bottle"
           />
-          <p className="text-xs text-muted-foreground">
-            Add the merchant/store/restaurant to keep receipts organized.
-          </p>
         </div>
       </div>
 
