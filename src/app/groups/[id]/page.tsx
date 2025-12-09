@@ -36,6 +36,8 @@ import {
 } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 const extractYMD = (value?: string | null) => {
   if (!value) return null;
@@ -538,8 +540,10 @@ function TripIntelCard({
 export default function GroupDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const groupId = id ?? "";
+  const isCreatingTrip = searchParams?.get("creating") === "1";
   const [intel, setIntel] = useState<TripIntelResponse | null>(null);
   const [refreshingSection, setRefreshingSection] =
     useState<TripIntelSection | null>(null);
@@ -559,6 +563,17 @@ export default function GroupDetailPage() {
     enabled: Boolean(groupId),
   });
 
+  const intelReady = useMemo(
+    () =>
+      Boolean(
+        intel?.sections.snapshot &&
+          intel?.sections.weather &&
+          intel?.sections.currency &&
+          intel?.sections.packing
+      ),
+    [intel]
+  );
+
   const {
     data: intelData,
     isPending: isIntelPending,
@@ -569,6 +584,7 @@ export default function GroupDetailPage() {
       fetchTripIntel(groupId, ["snapshot", "weather", "currency", "packing"]),
     enabled: Boolean(groupId) && data?.type === "TRIP",
     staleTime: 5 * 60 * 1000,
+    refetchInterval: data?.type === "TRIP" && !intelReady ? 3000 : false,
   });
 
   useEffect(() => {
@@ -856,62 +872,78 @@ export default function GroupDetailPage() {
               </Card>
             ) : null}
 
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="weather">Weather</TabsTrigger>
-                <TabsTrigger value="currency">Currency</TabsTrigger>
-                <TabsTrigger value="packing">Packing</TabsTrigger>
-              </TabsList>
-              <TabsContent value="overview">
-                <TripIntelCard
-                  groupType={data.type}
-                  section="snapshot"
-                  title="Overview"
-                  payload={intel?.sections.snapshot}
-                  isLoading={isIntelPending && !intel?.sections.snapshot}
-                  isError={isIntelError}
-                  onRefresh={() => refreshSection("snapshot")}
-                  isRefreshing={refreshingSection === "snapshot"}
-                />
-              </TabsContent>
-              <TabsContent value="weather">
-                <TripIntelCard
-                  groupType={data.type}
-                  section="weather"
-                  title="Weather"
-                  payload={intel?.sections.weather}
-                  isLoading={isIntelPending && !intel?.sections.weather}
-                  isError={isIntelError}
-                  onRefresh={() => refreshSection("weather")}
-                  isRefreshing={refreshingSection === "weather"}
-                />
-              </TabsContent>
-              <TabsContent value="currency">
-                <TripIntelCard
-                  groupType={data.type}
-                  section="currency"
-                  title="Currency & Payments"
-                  payload={intel?.sections.currency}
-                  isLoading={isIntelPending && !intel?.sections.currency}
-                  isError={isIntelError}
-                  onRefresh={() => refreshSection("currency")}
-                  isRefreshing={refreshingSection === "currency"}
-                />
-              </TabsContent>
-              <TabsContent value="packing">
-                <TripIntelCard
-                  groupType={data.type}
-                  section="packing"
-                  title="Packing"
-                  payload={intel?.sections.packing}
-                  isLoading={isIntelPending && !intel?.sections.packing}
-                  isError={isIntelError}
-                  onRefresh={() => refreshSection("packing")}
-                  isRefreshing={refreshingSection === "packing"}
-                />
-              </TabsContent>
-            </Tabs>
+            {data.type === "TRIP" && (!intelReady || isIntelPending || isCreatingTrip) ? (
+              <Card className="border-muted bg-muted/20">
+                <CardHeader className="flex flex-col gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    Creating your trip...
+                  </CardTitle>
+                  <CardDescription>
+                    We&rsquo;re generating your overview, weather, currency, and packing guidance.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            ) : null}
+
+            {data.type === "TRIP" && intelReady ? (
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="weather">Weather</TabsTrigger>
+                  <TabsTrigger value="currency">Currency</TabsTrigger>
+                  <TabsTrigger value="packing">Packing</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview">
+                  <TripIntelCard
+                    groupType={data.type}
+                    section="snapshot"
+                    title="Overview"
+                    payload={intel?.sections.snapshot}
+                    isLoading={isIntelPending && !intel?.sections.snapshot}
+                    isError={isIntelError}
+                    onRefresh={() => refreshSection("snapshot")}
+                    isRefreshing={refreshingSection === "snapshot"}
+                  />
+                </TabsContent>
+                <TabsContent value="weather">
+                  <TripIntelCard
+                    groupType={data.type}
+                    section="weather"
+                    title="Weather"
+                    payload={intel?.sections.weather}
+                    isLoading={isIntelPending && !intel?.sections.weather}
+                    isError={isIntelError}
+                    onRefresh={() => refreshSection("weather")}
+                    isRefreshing={refreshingSection === "weather"}
+                  />
+                </TabsContent>
+                <TabsContent value="currency">
+                  <TripIntelCard
+                    groupType={data.type}
+                    section="currency"
+                    title="Currency & Payments"
+                    payload={intel?.sections.currency}
+                    isLoading={isIntelPending && !intel?.sections.currency}
+                    isError={isIntelError}
+                    onRefresh={() => refreshSection("currency")}
+                    isRefreshing={refreshingSection === "currency"}
+                  />
+                </TabsContent>
+                <TabsContent value="packing">
+                  <TripIntelCard
+                    groupType={data.type}
+                    section="packing"
+                    title="Packing"
+                    payload={intel?.sections.packing}
+                    isLoading={isIntelPending && !intel?.sections.packing}
+                    isError={isIntelError}
+                    onRefresh={() => refreshSection("packing")}
+                    isRefreshing={refreshingSection === "packing"}
+                  />
+                </TabsContent>
+              </Tabs>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-4">
               <Card className="border-muted bg-background">

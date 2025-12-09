@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Group, fetchGroups } from "@/lib/api-client";
 import { createGroup } from "@/lib/api-client";
+import { useRouter } from "next/navigation";
 
 const formatDateOnly = (value: string) => {
   const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(value);
@@ -80,6 +81,7 @@ const formatDateRange = (
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [showTripModal, setShowTripModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [tripName, setTripName] = useState("");
@@ -98,7 +100,7 @@ export default function DashboardPage() {
         location: tripLocation || undefined,
         description: tripDescription || undefined,
       }),
-    onSuccess: () => {
+    onSuccess: (trip) => {
       setTripName("");
       setTripStart("");
       setTripEnd("");
@@ -106,6 +108,7 @@ export default function DashboardPage() {
       setTripDescription("");
       setShowTripModal(false);
       queryClient.invalidateQueries({ queryKey: ["groups"] });
+      router.push(`/groups/${trip.id}?creating=1`);
     },
   });
   const createProject = useMutation({
