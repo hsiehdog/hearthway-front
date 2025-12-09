@@ -29,16 +29,23 @@ import { Expense, Group, fetchGroup } from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
 import { getMemberEmail, getMemberName } from "@/lib/members";
 
-const formatDateOnly = (value?: string | null) => {
-  if (!value) return { label: "", month: "", day: "", year: NaN };
+const extractYMD = (value?: string | null) => {
+  if (!value) return null;
   const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(value);
-  if (!match) return { label: value, month: "", day: "", year: NaN };
+  if (!match) return null;
   const [, y, m, d] = match;
-  const date = new Date(`${y}-${m}-${d}T00:00:00Z`);
+  return { y: Number(y), m: Number(m), d: Number(d) };
+};
+
+const formatDateOnly = (value?: string | null) => {
+  const ymd = extractYMD(value);
+  if (!ymd) return { label: value ?? "", month: "", day: "", year: NaN, weekday: "" };
+  const date = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d));
   return {
-    year: Number(y),
+    year: ymd.y,
     month: date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
     day: date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" }),
+    weekday: date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
     label: date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -58,14 +65,28 @@ const formatDateRange = (start?: string | null, end?: string | null, fallback?: 
   const sameMonth = sameYear && startParts.month === endParts.month;
 
   if (sameYear && sameMonth) {
-    return `${startParts.month} ${startParts.day}-${endParts.day}, ${startParts.year}`;
+    return `${startParts.weekday} ${startParts.month} ${startParts.day} - ${endParts.weekday} ${startParts.month} ${endParts.day}, ${startParts.year}`;
   }
 
   if (sameYear) {
-    return `${startParts.month} ${startParts.day} - ${endParts.month} ${endParts.day}, ${startParts.year}`;
+    return `${startParts.weekday} ${startParts.month} ${startParts.day} - ${endParts.weekday} ${endParts.month} ${endParts.day}, ${startParts.year}`;
   }
 
-  return `${startParts.month} ${startParts.day}, ${startParts.year} - ${endParts.month} ${endParts.day}, ${endParts.year}`;
+  return `${startParts.weekday} ${startParts.month} ${startParts.day}, ${startParts.year} - ${endParts.weekday} ${endParts.month} ${endParts.day}, ${endParts.year}`;
+};
+
+const formatDuration = (start?: string | null, end?: string | null) => {
+  if (!start || !end) return "";
+  const startYmd = extractYMD(start);
+  const endYmd = extractYMD(end);
+  if (!startYmd || !endYmd) return "";
+  const startDate = Date.UTC(startYmd.y, startYmd.m - 1, startYmd.d);
+  const endDate = Date.UTC(endYmd.y, endYmd.m - 1, endYmd.d);
+  const diffMs = endDate - startDate;
+  if (diffMs < 0) return "";
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  const nights = Math.max(days - 1, 0);
+  return `${days} day${days === 1 ? "" : "s"} / ${nights} night${nights === 1 ? "" : "s"}`;
 };
 
 function formatAmount(expense: Expense) {
@@ -518,12 +539,15 @@ export default function GroupDetailPage() {
                     <CardTitle className="text-2xl font-semibold">
                       {data.name}
                     </CardTitle>
-                    <Badge variant="secondary" className="text-xs font-medium">
-                      {data.startDate
-                        ? formatDateRange(data.startDate, data.endDate)
-                        : data.type}
-                    </Badge>
                   </div>
+                  {data.startDate ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatDateRange(data.startDate, data.endDate)}</span>
+                      {formatDuration(data.startDate, data.endDate) ? (
+                        <span>· {formatDuration(data.startDate, data.endDate)}</span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">
                   <Button asChild size="sm" variant="outline">
