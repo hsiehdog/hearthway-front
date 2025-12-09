@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Group, fetchGroups } from "@/lib/api-client";
 import { createGroup } from "@/lib/api-client";
 
@@ -35,7 +36,10 @@ const formatDateOnly = (value: string) => {
   const date = new Date(`${y}-${m}-${d}T00:00:00Z`);
   return {
     year: Number(y),
-    month: date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
+    month: date.toLocaleDateString("en-US", {
+      month: "short",
+      timeZone: "UTC",
+    }),
     day: date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" }),
     label: date.toLocaleDateString("en-US", {
       month: "short",
@@ -46,7 +50,11 @@ const formatDateOnly = (value: string) => {
   };
 };
 
-const formatDateRange = (start?: string | null, end?: string | null, fallback?: string) => {
+const formatDateRange = (
+  start?: string | null,
+  end?: string | null,
+  fallback?: string
+) => {
   if (!start) {
     return fallback ?? "";
   }
@@ -78,6 +86,7 @@ export default function DashboardPage() {
   const [tripStart, setTripStart] = useState("");
   const [tripEnd, setTripEnd] = useState("");
   const [tripLocation, setTripLocation] = useState("");
+  const [tripDescription, setTripDescription] = useState("");
   const [projectName, setProjectName] = useState("");
   const createTrip = useMutation({
     mutationFn: () =>
@@ -87,12 +96,14 @@ export default function DashboardPage() {
         startDate: tripStart || undefined,
         endDate: tripEnd || undefined,
         location: tripLocation || undefined,
+        description: tripDescription || undefined,
       }),
     onSuccess: () => {
       setTripName("");
       setTripStart("");
       setTripEnd("");
       setTripLocation("");
+      setTripDescription("");
       setShowTripModal(false);
       queryClient.invalidateQueries({ queryKey: ["groups"] });
     },
@@ -166,14 +177,18 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs">
                                   {group.startDate
-                                    ? formatDateRange(group.startDate, group.endDate)
+                                    ? formatDateRange(
+                                        group.startDate,
+                                        group.endDate
+                                      )
                                     : `Updated ${formatDateOnly(group.updatedAt).label}`}
                                 </span>
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="text-sm text-muted-foreground">
                               {group.members.length} member
-                              {group.members.length === 1 ? "" : "s"} · {group.expenses.length} expense
+                              {group.members.length === 1 ? "" : "s"} ·{" "}
+                              {group.expenses.length} expense
                               {group.expenses.length === 1 ? "" : "s"}
                             </CardContent>
                           </Card>
@@ -200,14 +215,18 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs">
                                   {group.startDate
-                                    ? formatDateRange(group.startDate, group.endDate)
+                                    ? formatDateRange(
+                                        group.startDate,
+                                        group.endDate
+                                      )
                                     : `Updated ${formatDateOnly(group.updatedAt).label}`}
                                 </span>
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="text-sm text-muted-foreground">
                               {group.members.length} member
-                              {group.members.length === 1 ? "" : "s"} · {group.expenses.length} expense
+                              {group.members.length === 1 ? "" : "s"} ·{" "}
+                              {group.expenses.length} expense
                               {group.expenses.length === 1 ? "" : "s"}
                             </CardContent>
                           </Card>
@@ -221,7 +240,9 @@ export default function DashboardPage() {
                 <Card className="border-muted bg-muted/20">
                   <CardContent className="space-y-3 py-1">
                     <div className="space-y-1">
-                      <CardTitle className="text-xl">✈️ Plan a New Trip</CardTitle>
+                      <CardTitle className="text-xl">
+                        ✈️ Plan a New Trip
+                      </CardTitle>
                       <p className="text-sm text-muted-foreground">
                         Build your itinerary, track expenses as you go, and stay
                         organized without the stress.
@@ -288,12 +309,13 @@ export default function DashboardPage() {
 
         <Dialog open={showTripModal} onOpenChange={setShowTripModal}>
           <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Plan a new trip</DialogTitle>
-                <DialogDescription>
-                Create a shared or solo trip to organize your itinerary, upload receipts as you go, and keep everyone&apos;s spending in sync.
-                </DialogDescription>
-              </DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Plan a new trip</DialogTitle>
+              <DialogDescription>
+                Create a shared or solo trip to organize your itinerary, upload
+                receipts as you go, and keep everyone&apos;s spending in sync.
+              </DialogDescription>
+            </DialogHeader>
             <form className="space-y-4" onSubmit={handleCreateTrip}>
               <div className="space-y-2">
                 <label htmlFor="trip-name" className="text-sm font-medium">
@@ -301,7 +323,7 @@ export default function DashboardPage() {
                 </label>
                 <Input
                   id="trip-name"
-                  placeholder="Summer in Italy, Austin Conference, Family Ski Trip"
+                  placeholder="Summer in Italy, Austin Conference, Whistler Ski Trip"
                   value={tripName}
                   onChange={(event) => setTripName(event.target.value)}
                   required
@@ -340,6 +362,21 @@ export default function DashboardPage() {
                   placeholder="City, region, or venue"
                   value={tripLocation}
                   onChange={(event) => setTripLocation(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label
+                  htmlFor="trip-description"
+                  className="text-sm font-medium"
+                >
+                  Description (optional)
+                </label>
+                <Textarea
+                  id="trip-description"
+                  placeholder="Family reunion, friends getaway, business conference"
+                  value={tripDescription}
+                  onChange={(event) => setTripDescription(event.target.value)}
+                  rows={3}
                 />
               </div>
               {createTrip.error ? (

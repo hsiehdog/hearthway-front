@@ -113,6 +113,7 @@ export type Group = {
   startDate?: string | null;
   endDate?: string | null;
   primaryLocation?: string | null;
+  description?: string | null;
   members: GroupMember[];
   expenses: Expense[];
   createdAt: string;
@@ -395,6 +396,7 @@ export type CreateGroupPayload = {
   startDate?: string;
   endDate?: string;
   location?: string;
+  description?: string;
 };
 
 export async function createGroup(payload: CreateGroupPayload): Promise<Group> {
@@ -408,6 +410,7 @@ export async function createGroup(payload: CreateGroupPayload): Promise<Group> {
       startDate: payload.startDate ?? null,
       endDate: payload.endDate ?? null,
       primaryLocation: payload.location ?? null,
+      description: payload.description ?? null,
       members: [
         {
           id: crypto.randomUUID(),
