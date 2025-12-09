@@ -3,7 +3,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, PanelLeftClose, PanelLeftOpen, User, Home } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, User, Home } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

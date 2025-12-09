@@ -119,6 +119,18 @@ export type Group = {
   updatedAt: string;
 };
 
+export type TripIntelResponse = {
+  tripId: string;
+  sections: {
+    snapshot: {
+      content: string;
+      generatedAt: string;
+      model: string;
+      fromCache: boolean;
+    };
+  };
+};
+
 type AIChatResponse = {
   id?: string;
   role?: "user" | "assistant" | "system";
@@ -434,6 +446,26 @@ export async function fetchGroups(): Promise<Group[]> {
 
   const response = await request<{ groups: Group[] }>("/groups", "GET");
   return response.groups;
+}
+
+export async function fetchTripIntel(tripId: string): Promise<TripIntelResponse> {
+  if (isMock) {
+    await delay(180);
+    return {
+      tripId,
+      sections: {
+        snapshot: {
+          content:
+            "Trip Overview:\nYou’re heading to Whistler for a long weekend focused on skiing and snowy nightlife.\n\nTrip Vibe:\nHigh-energy winter adventure\n\nPlanning Posture:\n- Lock in lift tickets early\n- Budget extra time for mountain shuttles\n- Plan one recovery evening",
+          generatedAt: new Date().toISOString(),
+          model: "mock-model",
+          fromCache: true,
+        },
+      },
+    };
+  }
+
+  return request<TripIntelResponse>(`/trips/${tripId}/intel`, "GET");
 }
 
 export type AddGroupMemberPayload = {

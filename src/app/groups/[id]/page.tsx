@@ -25,9 +25,14 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Expense, Group, fetchGroup } from "@/lib/api-client";
+import {
+  Expense,
+  Group,
+  TripIntelResponse,
+  fetchGroup,
+  fetchTripIntel,
+} from "@/lib/api-client";
 import { UploadExpenseSection } from "@/components/groups/upload-expense-section";
-import { getMemberEmail, getMemberName } from "@/lib/members";
 
 const extractYMD = (value?: string | null) => {
   if (!value) return null;
@@ -87,6 +92,20 @@ const formatDuration = (start?: string | null, end?: string | null) => {
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
   const nights = Math.max(days - 1, 0);
   return `${days} day${days === 1 ? "" : "s"} / ${nights} night${nights === 1 ? "" : "s"}`;
+};
+
+const formatGeneratedAt = (value?: string) => {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
+  }
 };
 
 function formatAmount(expense: Expense) {
@@ -333,6 +352,75 @@ function GroupExpenses({
               </div>
             </button>
           ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TripIntelCard({
+  groupId,
+  groupType,
+}: {
+  groupId: string;
+  groupType?: Group["type"];
+}) {
+  const {
+    data,
+    isPending,
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery<TripIntelResponse>({
+    queryKey: ["trip-intel", groupId],
+    queryFn: () => fetchTripIntel(groupId),
+    enabled: groupType === "TRIP" && Boolean(groupId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (groupType !== "TRIP") return null;
+
+  const snapshot = data?.sections.snapshot;
+
+  return (
+    <Card className="border-muted bg-background">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4">
+        <div>
+          <CardTitle>Trip snapshot</CardTitle>
+          <CardDescription className="text-xs">
+            {snapshot
+              ? `Generated ${formatGeneratedAt(snapshot.generatedAt)} · ${snapshot.model}${snapshot.fromCache ? " · cached" : ""}`
+              : "AI intel for this trip"}
+          </CardDescription>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          {isFetching ? "Refreshing..." : "Refresh"}
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isPending ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+        ) : isError ? (
+          <p className="text-sm text-destructive">
+            Unable to load trip intel right now.
+          </p>
+        ) : snapshot ? (
+          <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            {snapshot.content}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No intel available yet.
+          </p>
         )}
       </CardContent>
     </Card>
@@ -615,6 +703,8 @@ export default function GroupDetailPage() {
                 </CardContent>
               </Card>
             ) : null}
+
+            <TripIntelCard groupId={groupId} groupType={data.type} />
 
             <div className="grid grid-cols-2 gap-4">
               <Card className="border-muted bg-background">

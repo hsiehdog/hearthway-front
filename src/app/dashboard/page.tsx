@@ -288,12 +288,12 @@ export default function DashboardPage() {
 
         <Dialog open={showTripModal} onOpenChange={setShowTripModal}>
           <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Plan a new trip</DialogTitle>
-              <DialogDescription>
-                Create a shared or solo trip to organize your itinerary, upload receipts as you go, and keep everyone's spending in sync.
-              </DialogDescription>
-            </DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Plan a new trip</DialogTitle>
+                <DialogDescription>
+                Create a shared or solo trip to organize your itinerary, upload receipts as you go, and keep everyone&apos;s spending in sync.
+                </DialogDescription>
+              </DialogHeader>
             <form className="space-y-4" onSubmit={handleCreateTrip}>
               <div className="space-y-2">
                 <label htmlFor="trip-name" className="text-sm font-medium">
