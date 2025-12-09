@@ -46,13 +46,20 @@ const extractYMD = (value?: string | null) => {
 
 const formatDateOnly = (value?: string | null) => {
   const ymd = extractYMD(value);
-  if (!ymd) return { label: value ?? "", month: "", day: "", year: NaN, weekday: "" };
+  if (!ymd)
+    return { label: value ?? "", month: "", day: "", year: NaN, weekday: "" };
   const date = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d));
   return {
     year: ymd.y,
-    month: date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
+    month: date.toLocaleDateString("en-US", {
+      month: "short",
+      timeZone: "UTC",
+    }),
     day: date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" }),
-    weekday: date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+    weekday: date.toLocaleDateString("en-US", {
+      weekday: "short",
+      timeZone: "UTC",
+    }),
     label: date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -62,7 +69,11 @@ const formatDateOnly = (value?: string | null) => {
   };
 };
 
-const formatDateRange = (start?: string | null, end?: string | null, fallback?: string) => {
+const formatDateRange = (
+  start?: string | null,
+  end?: string | null,
+  fallback?: string
+) => {
   if (!start) return fallback ?? "";
   const startParts = formatDateOnly(start);
   if (!end) return startParts.label;
@@ -360,8 +371,39 @@ function GroupExpenses({
   );
 }
 
+type ParsedSnapshot = {
+  overview?: string;
+  vibe?: string;
+  planning?: string[];
+};
+
+const parseSnapshotContent = (content?: string): ParsedSnapshot | null => {
+  if (!content) return null;
+  const overviewMatch = content.match(
+    /Trip Overview:\s*([\s\S]*?)(?:\n{2,}|$)/i
+  );
+  const vibeMatch = content.match(/Trip Vibe:\s*([\s\S]*?)(?:\n{2,}|$)/i);
+  const planningMatch = content.match(/Planning Posture:\s*([\s\S]*)/i);
+
+  const overview = overviewMatch?.[1]?.trim();
+  const vibe = vibeMatch?.[1]?.trim();
+  const planningRaw = planningMatch?.[1]?.trim();
+
+  const planning = planningRaw
+    ? planningRaw
+        .split("\n")
+        .map((line) => line.replace(/^-+\s*/, "").trim())
+        .filter(Boolean)
+    : undefined;
+
+  if (!overview && !vibe && !planning) return null;
+
+  return { overview, vibe, planning };
+};
+
 function TripIntelCard({
   groupType,
+  section,
   title,
   payload,
   isLoading,
@@ -370,6 +412,7 @@ function TripIntelCard({
   isRefreshing,
 }: {
   groupType?: Group["type"];
+  section: TripIntelSection;
   title: string;
   payload?: TripIntelSectionResponse;
   isLoading?: boolean;
@@ -379,16 +422,40 @@ function TripIntelCard({
 }) {
   if (groupType !== "TRIP") return null;
   const sectionData = payload;
+  const parsedSnapshot =
+    section === "snapshot" ? parseSnapshotContent(sectionData?.content) : null;
+  const isWeather = section === "weather";
+  const isListOnlySection =
+    section === "weather" || section === "currency" || section === "packing";
+
+  const renderList = (items: string[]) =>
+    items.map((item, idx) => {
+      const [label, ...rest] = item.split(":");
+      if (rest.length === 0) {
+        return (
+          <li key={idx} className="whitespace-pre-wrap">
+            {item}
+          </li>
+        );
+      }
+
+      const value = rest.join(":").trim();
+      return (
+        <li key={idx} className="whitespace-pre-wrap">
+          <span className="font-semibold">{label}:</span> {value}
+        </li>
+      );
+    });
 
   return (
     <Card className="border-muted bg-background">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4">
         <div>
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{section === "weather" ? "Weather" : title}</CardTitle>
           <CardDescription className="text-xs">
             {sectionData
-              ? `Generated ${formatGeneratedAt(sectionData.generatedAt)} · ${sectionData.model}${sectionData.fromCache ? " · cached" : ""}`
-              : "AI intel for this trip"}
+              ? `Updated ${formatGeneratedAt(sectionData.generatedAt)}`
+              : "Intel for this trip"}
           </CardDescription>
         </div>
         <Button
@@ -412,8 +479,50 @@ function TripIntelCard({
             Unable to load trip intel right now.
           </p>
         ) : sectionData ? (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {sectionData.content}
+          <div className="space-y-3 text-sm leading-relaxed text-foreground">
+            {parsedSnapshot ? (
+              <>
+                {parsedSnapshot.vibe ? (
+                  <p className="font-semibold">{parsedSnapshot.vibe}</p>
+                ) : null}
+                {parsedSnapshot.overview ? (
+                  <p className="whitespace-pre-wrap">
+                    {parsedSnapshot.overview}
+                  </p>
+                ) : null}
+                {parsedSnapshot.planning && parsedSnapshot.planning.length ? (
+                  <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                    {renderList(parsedSnapshot.planning)}
+                  </ul>
+                ) : null}
+              </>
+            ) : isWeather ? (
+              (() => {
+                const items = sectionData.content
+                  .replace(/^Weather Snapshot:\s*/i, "")
+                  .split("\n")
+                  .map((line) => line.replace(/^-+\s*/, "").trim())
+                  .filter(Boolean);
+                return (
+                  <ul className="list-disc space-y-1 pl-5 text-foreground">
+                    {renderList(items)}
+                  </ul>
+                );
+              })()
+            ) : isListOnlySection ? (
+              <ul className="list-disc space-y-1 pl-5 text-foreground">
+                {renderList(
+                  sectionData.content
+                    .replace(/^Currency\s*&?\s*Payments:\s*/i, "")
+                    .replace(/^Packing Suggestions:\s*/i, "")
+                    .split("\n")
+                    .map((line) => line.replace(/^-+\s*/, "").trim())
+                    .filter(Boolean)
+                )}
+              </ul>
+            ) : (
+              <div className="whitespace-pre-wrap">{sectionData.content}</div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -431,7 +540,8 @@ export default function GroupDetailPage() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const groupId = id ?? "";
   const [intel, setIntel] = useState<TripIntelResponse | null>(null);
-  const [refreshingSection, setRefreshingSection] = useState<TripIntelSection | null>(null);
+  const [refreshingSection, setRefreshingSection] =
+    useState<TripIntelSection | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
@@ -454,7 +564,8 @@ export default function GroupDetailPage() {
     isError: isIntelError,
   } = useQuery<TripIntelResponse>({
     queryKey: ["trip-intel", groupId, "snapshot-weather-currency-packing"],
-    queryFn: () => fetchTripIntel(groupId, ["snapshot", "weather", "currency", "packing"]),
+    queryFn: () =>
+      fetchTripIntel(groupId, ["snapshot", "weather", "currency", "packing"]),
     enabled: Boolean(groupId) && data?.type === "TRIP",
     staleTime: 5 * 60 * 1000,
   });
@@ -469,7 +580,9 @@ export default function GroupDetailPage() {
     if (!groupId) return;
     try {
       setRefreshingSection(section);
-      const response = await fetchTripIntel(groupId, [section], { force: true });
+      const response = await fetchTripIntel(groupId, [section], {
+        force: true,
+      });
       setIntel((prev) => ({
         tripId: response.tripId,
         sections: {
@@ -664,9 +777,13 @@ export default function GroupDetailPage() {
                   </div>
                   {data.startDate ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{formatDateRange(data.startDate, data.endDate)}</span>
+                      <span>
+                        {formatDateRange(data.startDate, data.endDate)}
+                      </span>
                       {formatDuration(data.startDate, data.endDate) ? (
-                        <span>· {formatDuration(data.startDate, data.endDate)}</span>
+                        <span>
+                          · {formatDuration(data.startDate, data.endDate)}
+                        </span>
                       ) : null}
                     </div>
                   ) : null}
@@ -741,7 +858,8 @@ export default function GroupDetailPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <TripIntelCard
                 groupType={data.type}
-                title="Trip snapshot"
+                section="snapshot"
+                title="Overview"
                 payload={intel?.sections.snapshot}
                 isLoading={isIntelPending && !intel?.sections.snapshot}
                 isError={isIntelError}
@@ -750,7 +868,8 @@ export default function GroupDetailPage() {
               />
               <TripIntelCard
                 groupType={data.type}
-                title="Weather snapshot"
+                section="weather"
+                title="Weather"
                 payload={intel?.sections.weather}
                 isLoading={isIntelPending && !intel?.sections.weather}
                 isError={isIntelError}
@@ -759,7 +878,8 @@ export default function GroupDetailPage() {
               />
               <TripIntelCard
                 groupType={data.type}
-                title="Currency & payments"
+                section="currency"
+                title="Currency & Payments"
                 payload={intel?.sections.currency}
                 isLoading={isIntelPending && !intel?.sections.currency}
                 isError={isIntelError}
@@ -768,6 +888,7 @@ export default function GroupDetailPage() {
               />
               <TripIntelCard
                 groupType={data.type}
+                section="packing"
                 title="Packing"
                 payload={intel?.sections.packing}
                 isLoading={isIntelPending && !intel?.sections.packing}

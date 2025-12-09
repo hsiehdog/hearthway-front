@@ -1,4 +1,4 @@
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 export type UsageMetric = {
   id: string;
@@ -152,7 +152,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request<T>(
   path: string,
   method: HttpMethod,
-  body?: Record<string, unknown>,
+  body?: Record<string, unknown>
 ): Promise<T> {
   if (!API_BASE_URL) {
     throw new Error("API base URL is not configured.");
@@ -289,7 +289,7 @@ const mockData = {
             totalAmount: "120.50",
           },
         ],
-        payments: [],
+        payments: [] as ExpensePayment[],
         createdAt: new Date().toISOString(),
       },
     ],
@@ -333,13 +333,13 @@ export async function fetchChatHistory(): Promise<ChatMessage[]> {
 
   const response = await request<{ sessions: AIChatResponse[] }>(
     "/users/me/sessions",
-    "GET",
+    "GET"
   );
   return (response.sessions || [])
     .sort(
       (a, b) =>
         new Date(a.createdAt || 0).getTime() -
-        new Date(b.createdAt || 0).getTime(),
+        new Date(b.createdAt || 0).getTime()
     )
     .flatMap((entry) => mapSessionToMessages(entry));
 }
@@ -361,14 +361,14 @@ export async function sendChatMessage(message: string): Promise<ChatMessage> {
     "POST",
     {
       prompt: message,
-    },
+    }
   );
 
   return mapToChatMessage(response.data);
 }
 
 export async function updateUserProfile(
-  payload: UpdateUserPayload,
+  payload: UpdateUserPayload
 ): Promise<void> {
   if (isMock) {
     await delay(300);
@@ -379,7 +379,7 @@ export async function updateUserProfile(
 }
 
 export async function changeUserPassword(
-  payload: ChangePasswordPayload,
+  payload: ChangePasswordPayload
 ): Promise<void> {
   if (isMock) {
     await delay(300);
@@ -412,11 +412,8 @@ export async function createGroup(payload: CreateGroupPayload): Promise<Group> {
         {
           id: crypto.randomUUID(),
           userId: "mock-user",
-          user: {
-            id: "mock-user",
-            name: "You",
-            email: "you@example.com",
-          },
+          displayName: "You",
+          email: "you@example.com",
         },
       ],
       expenses: [],
@@ -453,7 +450,7 @@ export async function fetchGroups(): Promise<Group[]> {
 export async function fetchTripIntel(
   tripId: string,
   sections?: TripIntelSection[],
-  options?: { force?: boolean },
+  options?: { force?: boolean }
 ): Promise<TripIntelResponse> {
   if (isMock) {
     await delay(180);
@@ -512,24 +509,24 @@ export type AddGroupMemberPayload = {
 };
 
 export async function addMemberToGroup(
-  payload: AddGroupMemberPayload,
+  payload: AddGroupMemberPayload
 ): Promise<Group> {
   if (isMock) {
     await delay(200);
-    const newMember = {
+    const newMember: GroupMember = {
       id: crypto.randomUUID(),
       userId: null,
       displayName: payload.displayName,
-      email: payload.email,
+      email: payload.email || null,
     };
-    mockData.group.members.push(newMember);
+    (mockData.group.members as GroupMember[]).push(newMember);
     return mockData.group;
   }
 
   const response = await request<{ group: Group }>(
     `/groups/${payload.groupId}/members`,
     "POST",
-    { displayName: payload.displayName, email: payload.email },
+    { displayName: payload.displayName, email: payload.email }
   );
   return response.group;
 }
@@ -555,7 +552,7 @@ export type CreateExpensePayload = {
 };
 
 export async function createExpense(
-  payload: CreateExpensePayload,
+  payload: CreateExpensePayload
 ): Promise<Expense> {
   if (isMock) {
     await delay(320);
@@ -596,7 +593,7 @@ export async function createExpense(
   const response = await request<{ expense: Expense }>(
     "/expenses",
     "POST",
-    payload,
+    payload
   );
   return response.expense;
 }
@@ -604,13 +601,15 @@ export async function createExpense(
 export type UpdateExpensePayload = CreateExpensePayload & { id: string };
 
 export async function updateExpense(
-  payload: UpdateExpensePayload,
+  payload: UpdateExpensePayload
 ): Promise<Expense> {
   if (isMock) {
     await delay(200);
+    const baseExpense =
+      mockData.group.expenses[0] ?? (await createExpense(payload));
     return {
-      ...(mockData.group.expenses[0] ?? (await createExpense(payload))),
-      ...payload,
+      ...baseExpense,
+      amount: payload.amount.toString(),
       id: payload.id,
       participantCosts: {},
       createdAt: new Date().toISOString(),
@@ -621,7 +620,7 @@ export async function updateExpense(
   const response = await request<{ expense: Expense }>(
     `/expenses/${id}`,
     "PUT",
-    body,
+    body
   );
   return response.expense;
 }
@@ -636,7 +635,7 @@ export type PayExpensePayload = {
 };
 
 export async function payExpense(
-  payload: PayExpensePayload,
+  payload: PayExpensePayload
 ): Promise<{ expense: Expense }> {
   const { expenseId, ...body } = payload;
   const response = await request<{
@@ -652,20 +651,20 @@ export type UpdateExpensePaymentPayload = PayExpensePayload & {
 };
 
 export async function updateExpensePayment(
-  payload: UpdateExpensePaymentPayload,
+  payload: UpdateExpensePaymentPayload
 ): Promise<{ expense: Expense }> {
   const { expenseId, paymentId, ...body } = payload;
   const response = await request<{ expense: Expense }>(
     `/expenses/${expenseId}/payments/${paymentId}`,
     "PUT",
-    body,
+    body
   );
   return response;
 }
 
 export async function deleteExpensePayment(
   expenseId: string,
-  paymentId: string,
+  paymentId: string
 ): Promise<{ expense: Expense }> {
   if (isMock) {
     await delay(100);
@@ -673,15 +672,15 @@ export async function deleteExpensePayment(
     if (!expense) {
       throw new Error("Expense not found");
     }
-    expense.payments = (expense.payments ?? []).filter(
-      (p) => p.id !== paymentId,
-    );
+    if (expense.payments) {
+      expense.payments = expense.payments.filter((p) => p.id !== paymentId);
+    }
     return { expense: expense as Expense };
   }
 
   const response = await request<{ expense: Expense }>(
     `/expenses/${expenseId}/payments/${paymentId}`,
-    "DELETE",
+    "DELETE"
   );
   return response;
 }
@@ -701,20 +700,19 @@ export async function fetchExpense(expenseId: string): Promise<Expense> {
     return {
       ...mockData.group.expenses[0],
       id: expenseId,
-      uploads: mockData.group.expenses[0].uploads,
     };
   }
 
   const response = await request<{ expense: Expense }>(
     `/expenses/${expenseId}`,
-    "GET",
+    "GET"
   );
   return response.expense;
 }
 
 export async function uploadExpenseFile(
   groupId: string,
-  file: File,
+  file: File
 ): Promise<Expense> {
   if (isMock) {
     await delay(200);
@@ -729,7 +727,7 @@ export async function uploadExpenseFile(
   const presign = await requestUploadUrl(
     groupId,
     file.name,
-    file.type || "application/octet-stream",
+    file.type || "application/octet-stream"
   );
   const putResponse = await fetch(presign.uploadUrl, {
     method: "PUT",
@@ -755,7 +753,7 @@ export type PresignUploadResponse = {
 export async function requestUploadUrl(
   groupId: string,
   fileName: string,
-  contentType: string,
+  contentType: string
 ): Promise<PresignUploadResponse> {
   const response = await request<PresignUploadResponse>(
     `/groups/${groupId}/expense-uploads/presign`,
@@ -763,24 +761,24 @@ export async function requestUploadUrl(
     {
       fileName,
       contentType,
-    },
+    }
   );
   return response;
 }
 
 export async function completeUpload(
-  uploadId: string,
+  uploadId: string
 ): Promise<{ upload: UploadedExpense }> {
   const response = await request<{ upload: UploadedExpense }>(
     `/uploads/${uploadId}/complete`,
-    "POST",
+    "POST"
   );
   return response;
 }
 
 export async function uploadExpenseBatch(
   groupId: string,
-  files: File[],
+  files: File[]
 ): Promise<{
   uploads: UploadedExpense[];
   expenseIds: string[];
@@ -797,7 +795,7 @@ export async function uploadExpenseBatch(
     const presign = await requestUploadUrl(
       groupId,
       file.name,
-      file.type || "application/octet-stream",
+      file.type || "application/octet-stream"
     );
 
     const putResponse = await fetch(presign.uploadUrl, {
@@ -824,7 +822,7 @@ export async function uploadExpenseBatch(
 
 function mapToChatMessage(
   payload: AIChatResponse,
-  fallbackRole: ChatMessage["role"] = "assistant",
+  fallbackRole: ChatMessage["role"] = "assistant"
 ): ChatMessage {
   const content = payload.text ?? payload.response ?? payload.prompt ?? "";
   return {
@@ -846,8 +844,8 @@ function mapSessionToMessages(session: AIChatResponse): ChatMessage[] {
           text: session.prompt,
           createdAt: session.createdAt,
         },
-        "user",
-      ),
+        "user"
+      )
     );
   }
   messages.push(
@@ -857,8 +855,8 @@ function mapSessionToMessages(session: AIChatResponse): ChatMessage[] {
         text: session.response ?? session.text ?? "",
         createdAt: session.createdAt,
       },
-      "assistant",
-    ),
+      "assistant"
+    )
   );
   return messages;
 }
