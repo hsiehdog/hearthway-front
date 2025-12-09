@@ -469,7 +469,7 @@ export default function GroupDetailPage() {
     if (!groupId) return;
     try {
       setRefreshingSection(section);
-      const response = await fetchTripIntel(groupId, [section]);
+      const response = await fetchTripIntel(groupId, [section], { force: true });
       setIntel((prev) => ({
         tripId: response.tripId,
         sections: {

@@ -450,7 +450,11 @@ export async function fetchGroups(): Promise<Group[]> {
   return response.groups;
 }
 
-export async function fetchTripIntel(tripId: string, sections?: TripIntelSection[]): Promise<TripIntelResponse> {
+export async function fetchTripIntel(
+  tripId: string,
+  sections?: TripIntelSection[],
+  options?: { force?: boolean },
+): Promise<TripIntelResponse> {
   if (isMock) {
     await delay(180);
     return {
@@ -488,8 +492,17 @@ export async function fetchTripIntel(tripId: string, sections?: TripIntelSection
     };
   }
 
-  const search = sections?.length ? `?sections=${sections.join(",")}` : "";
-  return request<TripIntelResponse>(`/trips/${tripId}/intel${search}`, "GET");
+  const params = new URLSearchParams();
+  if (sections?.length) {
+    params.set("sections", sections.join(","));
+  }
+  if (options?.force) {
+    params.set("force", "true");
+  }
+
+  const search = params.toString();
+  const path = `/trips/${tripId}/intel${search ? `?${search}` : ""}`;
+  return request<TripIntelResponse>(path, "GET");
 }
 
 export type AddGroupMemberPayload = {
