@@ -581,7 +581,9 @@ export default function GroupDetailPage() {
   } = useQuery<TripIntelResponse>({
     queryKey: ["trip-intel", groupId, "snapshot-weather-currency-packing"],
     queryFn: () =>
-      fetchTripIntel(groupId, ["snapshot", "weather", "currency", "packing"]),
+      fetchTripIntel(groupId, ["snapshot", "weather", "currency", "packing"], {
+        cacheOnly: true,
+      }),
     enabled: Boolean(groupId) && data?.type === "TRIP",
     staleTime: 5 * 60 * 1000,
     refetchInterval: data?.type === "TRIP" && !intelReady ? 3000 : false,
@@ -599,6 +601,7 @@ export default function GroupDetailPage() {
       setRefreshingSection(section);
       const response = await fetchTripIntel(groupId, [section], {
         force: true,
+        cacheOnly: false,
       });
       setIntel((prev) => ({
         tripId: response.tripId,
@@ -792,6 +795,11 @@ export default function GroupDetailPage() {
                       {data.name}
                     </CardTitle>
                   </div>
+                  {data.description ? (
+                    <p className="text-sm text-muted-foreground">
+                      {data.description}
+                    </p>
+                  ) : null}
                   {data.startDate ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>

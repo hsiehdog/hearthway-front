@@ -453,7 +453,7 @@ export async function fetchGroups(): Promise<Group[]> {
 export async function fetchTripIntel(
   tripId: string,
   sections?: TripIntelSection[],
-  options?: { force?: boolean }
+  options?: { force?: boolean; cacheOnly?: boolean }
 ): Promise<TripIntelResponse> {
   if (isMock) {
     await delay(180);
@@ -498,6 +498,9 @@ export async function fetchTripIntel(
   }
   if (options?.force) {
     params.set("force", "true");
+  }
+  if (options?.cacheOnly === false) {
+    params.set("cacheOnly", "false");
   }
 
   const search = params.toString();
