@@ -29,6 +29,8 @@ import {
   Expense,
   Group,
   TripIntelResponse,
+  TripIntelSection,
+  TripIntelSectionResponse,
   fetchGroup,
   fetchTripIntel,
 } from "@/lib/api-client";
@@ -359,51 +361,47 @@ function GroupExpenses({
 }
 
 function TripIntelCard({
-  groupId,
   groupType,
+  title,
+  payload,
+  isLoading,
+  isError,
+  onRefresh,
+  isRefreshing,
 }: {
-  groupId: string;
   groupType?: Group["type"];
+  title: string;
+  payload?: TripIntelSectionResponse;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }) {
-  const {
-    data,
-    isPending,
-    isFetching,
-    isError,
-    refetch,
-  } = useQuery<TripIntelResponse>({
-    queryKey: ["trip-intel", groupId],
-    queryFn: () => fetchTripIntel(groupId),
-    enabled: groupType === "TRIP" && Boolean(groupId),
-    staleTime: 5 * 60 * 1000,
-  });
-
   if (groupType !== "TRIP") return null;
-
-  const snapshot = data?.sections.snapshot;
+  const sectionData = payload;
 
   return (
     <Card className="border-muted bg-background">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4">
         <div>
-          <CardTitle>Trip snapshot</CardTitle>
+          <CardTitle>{title}</CardTitle>
           <CardDescription className="text-xs">
-            {snapshot
-              ? `Generated ${formatGeneratedAt(snapshot.generatedAt)} · ${snapshot.model}${snapshot.fromCache ? " · cached" : ""}`
+            {sectionData
+              ? `Generated ${formatGeneratedAt(sectionData.generatedAt)} · ${sectionData.model}${sectionData.fromCache ? " · cached" : ""}`
               : "AI intel for this trip"}
           </CardDescription>
         </div>
         <Button
           size="sm"
           variant="outline"
-          onClick={() => refetch()}
-          disabled={isFetching}
+          onClick={onRefresh}
+          disabled={isRefreshing}
         >
-          {isFetching ? "Refreshing..." : "Refresh"}
+          {isRefreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </CardHeader>
       <CardContent>
-        {isPending ? (
+        {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />
@@ -413,9 +411,9 @@ function TripIntelCard({
           <p className="text-sm text-destructive">
             Unable to load trip intel right now.
           </p>
-        ) : snapshot ? (
+        ) : sectionData ? (
           <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {snapshot.content}
+            {sectionData.content}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -432,6 +430,8 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const groupId = id ?? "";
+  const [intel, setIntel] = useState<TripIntelResponse | null>(null);
+  const [refreshingSection, setRefreshingSection] = useState<TripIntelSection | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
@@ -447,6 +447,40 @@ export default function GroupDetailPage() {
     queryFn: () => fetchGroup(groupId),
     enabled: Boolean(groupId),
   });
+
+  const {
+    data: intelData,
+    isPending: isIntelPending,
+    isError: isIntelError,
+  } = useQuery<TripIntelResponse>({
+    queryKey: ["trip-intel", groupId, "snapshot-weather-currency-packing"],
+    queryFn: () => fetchTripIntel(groupId, ["snapshot", "weather", "currency", "packing"]),
+    enabled: Boolean(groupId) && data?.type === "TRIP",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (intelData) {
+      setIntel(intelData);
+    }
+  }, [intelData]);
+
+  const refreshSection = async (section: TripIntelSection) => {
+    if (!groupId) return;
+    try {
+      setRefreshingSection(section);
+      const response = await fetchTripIntel(groupId, [section]);
+      setIntel((prev) => ({
+        tripId: response.tripId,
+        sections: {
+          ...(prev?.sections ?? {}),
+          ...response.sections,
+        },
+      }));
+    } finally {
+      setRefreshingSection(null);
+    }
+  };
 
   const costsSummary = useMemo(() => {
     if (!data) return null;
@@ -704,7 +738,44 @@ export default function GroupDetailPage() {
               </Card>
             ) : null}
 
-            <TripIntelCard groupId={groupId} groupType={data.type} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <TripIntelCard
+                groupType={data.type}
+                title="Trip snapshot"
+                payload={intel?.sections.snapshot}
+                isLoading={isIntelPending && !intel?.sections.snapshot}
+                isError={isIntelError}
+                onRefresh={() => refreshSection("snapshot")}
+                isRefreshing={refreshingSection === "snapshot"}
+              />
+              <TripIntelCard
+                groupType={data.type}
+                title="Weather snapshot"
+                payload={intel?.sections.weather}
+                isLoading={isIntelPending && !intel?.sections.weather}
+                isError={isIntelError}
+                onRefresh={() => refreshSection("weather")}
+                isRefreshing={refreshingSection === "weather"}
+              />
+              <TripIntelCard
+                groupType={data.type}
+                title="Currency & payments"
+                payload={intel?.sections.currency}
+                isLoading={isIntelPending && !intel?.sections.currency}
+                isError={isIntelError}
+                onRefresh={() => refreshSection("currency")}
+                isRefreshing={refreshingSection === "currency"}
+              />
+              <TripIntelCard
+                groupType={data.type}
+                title="Packing"
+                payload={intel?.sections.packing}
+                isLoading={isIntelPending && !intel?.sections.packing}
+                isError={isIntelError}
+                onRefresh={() => refreshSection("packing")}
+                isRefreshing={refreshingSection === "packing"}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <Card className="border-muted bg-background">

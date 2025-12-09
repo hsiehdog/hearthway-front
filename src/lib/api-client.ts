@@ -121,14 +121,16 @@ export type Group = {
 
 export type TripIntelResponse = {
   tripId: string;
-  sections: {
-    snapshot: {
-      content: string;
-      generatedAt: string;
-      model: string;
-      fromCache: boolean;
-    };
-  };
+  sections: Partial<Record<TripIntelSection, TripIntelSectionResponse>>;
+};
+
+export type TripIntelSection = "snapshot" | "weather" | "currency" | "packing";
+
+export type TripIntelSectionResponse = {
+  content: string;
+  generatedAt: string;
+  model: string;
+  fromCache: boolean;
 };
 
 type AIChatResponse = {
@@ -448,7 +450,7 @@ export async function fetchGroups(): Promise<Group[]> {
   return response.groups;
 }
 
-export async function fetchTripIntel(tripId: string): Promise<TripIntelResponse> {
+export async function fetchTripIntel(tripId: string, sections?: TripIntelSection[]): Promise<TripIntelResponse> {
   if (isMock) {
     await delay(180);
     return {
@@ -461,11 +463,33 @@ export async function fetchTripIntel(tripId: string): Promise<TripIntelResponse>
           model: "mock-model",
           fromCache: true,
         },
+        weather: {
+          content:
+            "Weather Snapshot:\n- Typical daytime temps in the mid 20s–30s F\n- Snow is likely at higher elevations with icy mornings\n- Pack layers, waterproof outerwear, and shoes with traction",
+          generatedAt: new Date().toISOString(),
+          model: "mock-model",
+          fromCache: true,
+        },
+        currency: {
+          content:
+            "Currency & Payments:\n- Local currency: CAD; cards widely accepted in cities/resorts\n- Keep a small amount of cash for shuttles, small cafes, and tips\n- Tipping: ~15-20% at restaurants; round up for quick service",
+          generatedAt: new Date().toISOString(),
+          model: "mock-model",
+          fromCache: true,
+        },
+        packing: {
+          content:
+            "Packing Suggestions:\n- Waterproof outer shell, insulating mid-layer, and moisture-wicking base layers\n- Snow boots or shoes with traction; warm hat and gloves\n- Travel-size sunscreen, lip balm, and a compact daypack for the slopes",
+          generatedAt: new Date().toISOString(),
+          model: "mock-model",
+          fromCache: true,
+        },
       },
     };
   }
 
-  return request<TripIntelResponse>(`/trips/${tripId}/intel`, "GET");
+  const search = sections?.length ? `?sections=${sections.join(",")}` : "";
+  return request<TripIntelResponse>(`/trips/${tripId}/intel${search}`, "GET");
 }
 
 export type AddGroupMemberPayload = {
